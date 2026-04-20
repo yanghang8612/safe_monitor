@@ -16,7 +16,18 @@ class Normalizer:
         if raw.source == "defillama_api":
             parsed = parse_defillama(raw.raw)
         elif raw.source_kind == "tg":
-            parsed = parse_generic_tg(raw.text or json.dumps(raw.raw))
+            text = raw.text or json.dumps(raw.raw)
+            if raw.source == "peckshield_tg":
+                from safe_monitor.core.parsers.peckshield import parse_peckshield
+                parsed = parse_peckshield(text)
+            elif raw.source == "slowmist_tg":
+                from safe_monitor.core.parsers.slowmist import parse_slowmist
+                parsed = parse_slowmist(text)
+            elif raw.source == "whale_alert_tg":
+                from safe_monitor.core.parsers.whale_alert import parse_whale_alert
+                parsed = parse_whale_alert(text)
+            else:
+                parsed = parse_generic_tg(text)
         else:
             return None
 
