@@ -12,6 +12,7 @@ from safe_monitor.logging_setup import setup as setup_logging
 from safe_monitor.publishers.telegram import TelegramPublisher
 from safe_monitor.sources.base import Source
 from safe_monitor.sources.defillama import DefiLlamaHacksPoller
+from safe_monitor.sources.ofac import OfacSdnPoller
 from safe_monitor.storage.db import Database
 
 
@@ -27,7 +28,16 @@ async def _build_sources(cfg, db: Database) -> list[Source]:
                     db=db,
                 )
             )
-        # OFAC added in Task 11; Telegram ingestor added in Task 12
+        elif api.name == "ofac_sdn":
+            sources.append(
+                OfacSdnPoller(
+                    name="ofac_sdn",
+                    endpoint=api.endpoint,
+                    poll_interval_seconds=api.poll_interval_seconds,
+                    db=db,
+                )
+            )
+        # Telegram ingestor added in Task 12
     return sources
 
 
