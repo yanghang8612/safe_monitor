@@ -1,0 +1,10 @@
+{
+  "name": "Example Bridge",
+  "date": 1715000000,
+  "amount": 12000000,
+  "chains": ["Ethereum"],
+  "classification": "Exploit",
+  "technique": "Reentrancy",
+  "returned_funds": 0,
+  "link": "https://example.com/report"
+}
