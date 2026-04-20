@@ -1,0 +1,20 @@
+services:
+  safe_monitor:
+    build: .
+    image: safe_monitor:0.1.0
+    container_name: safe_monitor
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      TZ: UTC
+      SAFE_MONITOR_DB_PATH: /app/data/safe_monitor.db
+      SAFE_MONITOR_CONFIG: /app/config.yaml
+      TG_USERBOT_SESSION: /app/data/userbot.session
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml:ro
+    healthcheck:
+      test: ["CMD", "uv", "run", "python", "-c", "print('ok')"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
