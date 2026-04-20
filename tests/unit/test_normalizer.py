@@ -57,6 +57,27 @@ def test_normalize_generic_tg_drops_noise():
     assert ev.severity == Severity.low
 
 
+def test_normalize_ofac_sdn():
+    raw = RawEvent(
+        source="ofac_sdn",
+        source_kind="api",
+        external_id="123:0xabc",
+        received_at=datetime.now(UTC),
+        raw={
+            "uid": "123",
+            "name": "Evil Person",
+            "id_type": "Digital Currency Address - XBT",
+            "address": "0xabc123",
+        },
+        text="OFAC sanctioned: Evil Person (Digital Currency Address - XBT) 0xabc123",
+    )
+    ev = Normalizer().normalize(raw)
+    assert ev is not None
+    assert EventCategory.h in ev.category
+    assert ev.severity >= Severity.high
+    assert "OFAC" in ev.title
+
+
 def test_fingerprint_stable_same_day():
     import re
 

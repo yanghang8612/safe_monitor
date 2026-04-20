@@ -6,6 +6,7 @@ from safe_monitor.core.fingerprint import compute as compute_fp
 from safe_monitor.core.models import Event, RawEvent
 from safe_monitor.core.parsers.defillama import parse_defillama
 from safe_monitor.core.parsers.generic_tg import parse_generic_tg
+from safe_monitor.core.parsers.ofac import parse_ofac
 from safe_monitor.core.severity import score as score_severity
 
 
@@ -14,6 +15,8 @@ class Normalizer:
         parsed: dict
         if raw.source == "defillama_api":
             parsed = parse_defillama(raw.raw)
+        elif raw.source == "ofac_sdn":
+            parsed = parse_ofac(raw.raw)
         elif raw.source_kind == "tg":
             text = raw.text or json.dumps(raw.raw)
             if raw.source == "peckshield_tg":
