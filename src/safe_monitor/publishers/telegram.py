@@ -23,6 +23,10 @@ class TelegramPublisher(Publisher):
         wait=wait_exponential(multiplier=1, min=1, max=30),
     )
     async def _send(self, text: str) -> None:
+        # v0 intentionally ships plain text (no parse_mode). MarkdownV2 is
+        # deferred to v0.1 because it requires escaping every dynamic field
+        # (titles, addresses, loss strings) against a dozen special chars --
+        # any miss produces a Telegram 400. See the design spec §6.5.
         await self._bot.send_message(
             chat_id=self._chat_id,
             text=text,
