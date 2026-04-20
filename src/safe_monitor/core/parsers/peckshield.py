@@ -19,12 +19,15 @@ def parse_peckshield(text: str) -> dict:
         if m_attacker:
             base["attacker_addr"] = m_attacker.group(1)
     # Override loss parsing to prefer phrases like "approximately $X drained"
-    m = re.search(r"(?:drained|stolen|loss[^$]*?)\$([\d,]+(?:\.\d+)?)\s*(K|M|B)?", text, re.IGNORECASE)
+    m = re.search(
+        r"(?:drained|stolen|loss[^$]*?)\$([\d,]+(?:\.\d+)?)\s*(K|M|B)?", text, re.IGNORECASE
+    )
     if not m:
         # Fallback: PeckShield often phrases it as "$80M was drained" (keyword after amount)
         m = re.search(
             r"\$([\d,]+(?:\.\d+)?)\s*(K|M|B)?\b[^.\n]*?(?:drained|stolen)",
-            text, re.IGNORECASE,
+            text,
+            re.IGNORECASE,
         )
     if m:
         num = float(m.group(1).replace(",", ""))

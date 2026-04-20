@@ -48,7 +48,6 @@ async def _build_sources(
             )
     if cfg.sources.telegram:
         # single ingestor multiplexes all channels
-        from safe_monitor.config import TgSourceCfg  # re-import for clarity
         channels = [(c.name, c.username) for c in cfg.sources.telegram]
         sources.append(
             TelegramIngestor(
@@ -77,6 +76,7 @@ async def _amain() -> None:
     )
 
     from safe_monitor.core.scheduler import build_scheduler
+
     scheduler = build_scheduler(db, ttl_days=settings.config.dedup.ttl_days)
     scheduler.start()
 

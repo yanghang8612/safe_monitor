@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from safe_monitor.core.deduper import Deduper
@@ -13,7 +13,7 @@ def _event(fp: str = "fp1") -> Event:
         title="t",
         severity=Severity.high,
         category=[EventCategory.a],
-        received_at=datetime.now(timezone.utc),
+        received_at=datetime.now(UTC),
         raw={},
     )
 

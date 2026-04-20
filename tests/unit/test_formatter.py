@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from safe_monitor.core.models import Event, EventCategory, Severity
 from safe_monitor.publishers.formatter import format_event
@@ -17,7 +17,7 @@ def _ev() -> Event:
         attacker_addr="0x" + "b" * 40,
         loss_usd=80_000_000,
         url="https://t.me/peckshield/12345",
-        received_at=datetime(2026, 4, 20, 13, 45, 2, tzinfo=timezone.utc),
+        received_at=datetime(2026, 4, 20, 13, 45, 2, tzinfo=UTC),
         raw={},
     )
 

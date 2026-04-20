@@ -1,12 +1,13 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
+from pydantic import ValidationError
 
 from safe_monitor.core.models import (
+    Event,
     EventCategory,
     RawEvent,
     Severity,
-    Event,
 )
 
 
@@ -21,7 +22,7 @@ def test_raw_event_minimal():
         source="peckshield_tg",
         source_kind="tg",
         external_id="12345",
-        received_at=datetime.now(timezone.utc),
+        received_at=datetime.now(UTC),
         raw={"text": "hi"},
     )
     assert e.source == "peckshield_tg"
@@ -29,7 +30,7 @@ def test_raw_event_minimal():
 
 
 def test_event_minimal():
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     e = Event(
         fingerprint="abc",
         source="defillama_api",
@@ -44,5 +45,5 @@ def test_event_minimal():
 
 
 def test_event_rejects_missing_required():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         Event(source="x", title="y")  # missing fingerprint etc.

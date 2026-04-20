@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 import json
-from typing import Optional
 
 from safe_monitor.core.fingerprint import compute as compute_fp
-from safe_monitor.core.models import Event, RawEvent, Severity
+from safe_monitor.core.models import Event, RawEvent
 from safe_monitor.core.parsers.defillama import parse_defillama
 from safe_monitor.core.parsers.generic_tg import parse_generic_tg
 from safe_monitor.core.severity import score as score_severity
 
 
 class Normalizer:
-    def normalize(self, raw: RawEvent) -> Optional[Event]:
+    def normalize(self, raw: RawEvent) -> Event | None:
         parsed: dict
         if raw.source == "defillama_api":
             parsed = parse_defillama(raw.raw)
@@ -19,12 +18,15 @@ class Normalizer:
             text = raw.text or json.dumps(raw.raw)
             if raw.source == "peckshield_tg":
                 from safe_monitor.core.parsers.peckshield import parse_peckshield
+
                 parsed = parse_peckshield(text)
             elif raw.source == "slowmist_tg":
                 from safe_monitor.core.parsers.slowmist import parse_slowmist
+
                 parsed = parse_slowmist(text)
             elif raw.source == "whale_alert_tg":
                 from safe_monitor.core.parsers.whale_alert import parse_whale_alert
+
                 parsed = parse_whale_alert(text)
             else:
                 parsed = parse_generic_tg(text)

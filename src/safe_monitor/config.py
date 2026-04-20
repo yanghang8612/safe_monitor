@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal
 
 import yaml
 from pydantic import BaseModel, Field
@@ -54,7 +53,7 @@ class Settings(BaseSettings):
     log_level: str = Field("INFO", alias="LOG_LEVEL")
     config_path: str = Field("./config.yaml", alias="SAFE_MONITOR_CONFIG")
 
-    config: Optional[ConfigYaml] = None  # filled in load_settings
+    config: ConfigYaml | None = None  # filled in load_settings
 
 
 def load_settings() -> Settings:

@@ -6,7 +6,9 @@ from safe_monitor.core.models import EventCategory
 
 _TX = re.compile(r"0x[a-fA-F0-9]{64}")
 _ADDR = re.compile(r"0x[a-fA-F0-9]{40}")
-_LOSS_USD = re.compile(r"(?:loss|stolen|drained|amount)[^$]*\$([\d,]+(?:\.\d+)?)\s*(K|M|B)?", re.IGNORECASE)
+_LOSS_USD = re.compile(
+    r"(?:loss|stolen|drained|amount)[^$]*\$([\d,]+(?:\.\d+)?)\s*(K|M|B)?", re.IGNORECASE
+)
 _CHAIN = re.compile(
     r"\b(Ethereum|BSC|Polygon|Arbitrum|Optimism|Base|Solana|TRON|Avalanche|Bitcoin)\b",
     re.IGNORECASE,

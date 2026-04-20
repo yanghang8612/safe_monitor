@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -20,14 +20,16 @@ class FakeTG:
 
     async def run(self, sink: asyncio.Queue):
         for i, t in enumerate(self._texts):
-            await sink.put(RawEvent(
-                source="peckshield_tg",
-                source_kind="tg",
-                external_id=str(i),
-                received_at=datetime.now(timezone.utc),
-                raw={"text": t},
-                text=t,
-            ))
+            await sink.put(
+                RawEvent(
+                    source="peckshield_tg",
+                    source_kind="tg",
+                    external_id=str(i),
+                    received_at=datetime.now(UTC),
+                    raw={"text": t},
+                    text=t,
+                )
+            )
         await asyncio.sleep(3600)
 
 

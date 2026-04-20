@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 import structlog
@@ -48,12 +48,14 @@ class OfacSdnPoller(Source):
                     if t == "idNumber":
                         id_number = (c.text or "").strip()
                 if "Digital Currency" in id_type and id_number:
-                    items.append({
-                        "uid": uid,
-                        "name": name,
-                        "id_type": id_type,
-                        "address": id_number,
-                    })
+                    items.append(
+                        {
+                            "uid": uid,
+                            "name": name,
+                            "id_type": id_type,
+                            "address": id_number,
+                        }
+                    )
         return items
 
     async def poll_once(self, sink: asyncio.Queue[RawEvent]) -> None:
@@ -78,7 +80,7 @@ class OfacSdnPoller(Source):
                 source=self.name,
                 source_kind="api",
                 external_id=key,
-                received_at=datetime.now(timezone.utc),
+                received_at=datetime.now(UTC),
                 raw=e,
                 text=text,
             )

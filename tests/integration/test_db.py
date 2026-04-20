@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -30,7 +30,7 @@ async def test_checkpoint_roundtrip(db: Database):
 
 
 async def test_event_log_append(db: Database):
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     eid = await db.log_event(
         source="defillama_api",
         received_at=now,

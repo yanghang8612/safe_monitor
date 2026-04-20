@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 from telethon import TelegramClient, events
@@ -59,7 +59,7 @@ class TelegramIngestor(Source):
                 source=source_name,
                 source_kind="tg",
                 external_id=str(msg.id),
-                received_at=datetime.now(timezone.utc),
+                received_at=datetime.now(UTC),
                 raw={"text": text, "msg_id": msg.id, "chat_id": chat_id},
                 text=text,
                 occurred_at=msg.date if hasattr(msg, "date") else None,

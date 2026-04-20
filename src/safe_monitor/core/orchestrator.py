@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import Sequence
+from collections.abc import Sequence
+from datetime import UTC
 
 import structlog
 
@@ -56,7 +57,7 @@ class Orchestrator:
         while not self._shutdown.is_set():
             try:
                 raw = await asyncio.wait_for(self._queue.get(), timeout=0.5)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
             await self._handle(raw)
 
@@ -81,11 +82,12 @@ class Orchestrator:
                 )
                 return
             ok = await self._publisher.publish(event)
-            from datetime import datetime, timezone
+            from datetime import datetime
+
             await self._db.log_event(
                 source=event.source,
                 received_at=event.received_at.isoformat(),
-                published_at=datetime.now(timezone.utc).isoformat() if ok else None,
+                published_at=datetime.now(UTC).isoformat() if ok else None,
                 severity=event.severity.name,
                 title=event.title,
                 url=event.url,

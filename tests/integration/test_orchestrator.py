@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -39,12 +39,20 @@ async def test_orchestrator_dedups_and_publishes(tmp_path: Path):
     db = Database(tmp_path / "o.db")
     await db.init()
     raw_a = RawEvent(
-        source="fake_tg", source_kind="tg", external_id="1",
-        received_at=datetime.now(timezone.utc), raw={"text": "x"}, text="ProtocolX exploited loss $5M",
+        source="fake_tg",
+        source_kind="tg",
+        external_id="1",
+        received_at=datetime.now(UTC),
+        raw={"text": "x"},
+        text="ProtocolX exploited loss $5M",
     )
     raw_b_dup = raw_a.model_copy(update={"external_id": "2"})  # same text → same fp
     raw_c = raw_a.model_copy(
-        update={"external_id": "3", "text": "OtherProto drained $20M", "raw": {"text": "OtherProto drained $20M"}}
+        update={
+            "external_id": "3",
+            "text": "OtherProto drained $20M",
+            "raw": {"text": "OtherProto drained $20M"},
+        }
     )
 
     pub = CapturingPublisher()

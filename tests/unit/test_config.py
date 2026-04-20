@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 from safe_monitor.config import Settings, load_settings

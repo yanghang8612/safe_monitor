@@ -18,8 +18,10 @@ async def test_ofac_poller_emits_addresses(tmp_path: Path):
     with respx.mock(assert_all_called=True) as mock:
         mock.get("https://example/ofac.xml").mock(return_value=Response(200, text=xml))
         poller = OfacSdnPoller(
-            name="ofac_sdn", endpoint="https://example/ofac.xml",
-            poll_interval_seconds=1, db=db,
+            name="ofac_sdn",
+            endpoint="https://example/ofac.xml",
+            poll_interval_seconds=1,
+            db=db,
         )
         q: asyncio.Queue = asyncio.Queue()
         await poller.poll_once(q)

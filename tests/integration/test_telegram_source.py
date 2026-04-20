@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
@@ -17,16 +17,14 @@ async def test_ingestor_forwards_new_messages(tmp_path, monkeypatch):
     fake_msg = SimpleNamespace(
         id=1001,
         message="Resolv exploited for $80M",
-        date=datetime.now(timezone.utc),
+        date=datetime.now(UTC),
         peer_id=SimpleNamespace(channel_id=555),
     )
 
     fake_client = MagicMock()
     fake_client.start = AsyncMock()
     fake_client.disconnect = AsyncMock()
-    fake_client.get_entity = AsyncMock(
-        return_value=SimpleNamespace(id=555, username="peckshield")
-    )
+    fake_client.get_entity = AsyncMock(return_value=SimpleNamespace(id=555, username="peckshield"))
 
     handlers: list = []
 
@@ -34,6 +32,7 @@ async def test_ingestor_forwards_new_messages(tmp_path, monkeypatch):
         def deco(fn):
             handlers.append(fn)
             return fn
+
         return deco
 
     fake_client.on = fake_on
@@ -41,6 +40,7 @@ async def test_ingestor_forwards_new_messages(tmp_path, monkeypatch):
     class FakeTGClient:
         def __init__(self, *a, **kw):
             pass
+
         def __getattr__(self, n):
             return getattr(fake_client, n)
 
@@ -48,8 +48,12 @@ async def test_ingestor_forwards_new_messages(tmp_path, monkeypatch):
 
     q: asyncio.Queue = asyncio.Queue()
     ingestor = TelegramIngestor(
-        api_id=1, api_hash="x", session_path=str(tmp_path / "s"),
-        phone="+100", channels=[("peckshield_tg", "peckshield")], db=db,
+        api_id=1,
+        api_hash="x",
+        session_path=str(tmp_path / "s"),
+        phone="+100",
+        channels=[("peckshield_tg", "peckshield")],
+        db=db,
     )
 
     run_task = asyncio.create_task(ingestor.run(q))

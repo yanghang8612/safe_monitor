@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -46,10 +46,10 @@ class DefiLlamaHacksPoller(Source):
             ev = RawEvent(
                 source=self.name,
                 source_kind="api",
-                external_id=f"{item.get('name','?')}|{ts}",
-                received_at=datetime.now(timezone.utc),
+                external_id=f"{item.get('name', '?')}|{ts}",
+                received_at=datetime.now(UTC),
                 raw=item,
-                occurred_at=datetime.fromtimestamp(ts, tz=timezone.utc),
+                occurred_at=datetime.fromtimestamp(ts, tz=UTC),
                 url=item.get("link"),
             )
             await sink.put(ev)

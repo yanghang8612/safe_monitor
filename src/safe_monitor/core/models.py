@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from datetime import datetime
-from enum import IntEnum, Enum
-from typing import Any, Literal, Optional
+from enum import IntEnum, StrEnum
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -14,7 +14,7 @@ class Severity(IntEnum):
     critical = 40
 
 
-class EventCategory(str, Enum):
+class EventCategory(StrEnum):
     a = "a"  # protocol/contract exploit
     b = "b"  # bridge attack
     c = "c"  # CEX / custodian
@@ -35,9 +35,9 @@ class RawEvent(BaseModel):
     external_id: str
     received_at: datetime
     raw: dict[str, Any]
-    text: Optional[str] = None
-    url: Optional[str] = None
-    occurred_at: Optional[datetime] = None
+    text: str | None = None
+    url: str | None = None
+    occurred_at: datetime | None = None
 
 
 class Event(BaseModel):
@@ -46,14 +46,14 @@ class Event(BaseModel):
     fingerprint: str
     source: str
     title: str
-    body: Optional[str] = None
-    url: Optional[str] = None
+    body: str | None = None
+    url: str | None = None
     severity: Severity
     category: list[EventCategory] = []
-    chain: Optional[str] = None
-    tx_hash: Optional[str] = None
-    attacker_addr: Optional[str] = None
-    loss_usd: Optional[float] = None
-    occurred_at: Optional[datetime] = None
+    chain: str | None = None
+    tx_hash: str | None = None
+    attacker_addr: str | None = None
+    loss_usd: float | None = None
+    occurred_at: datetime | None = None
     received_at: datetime
     raw: dict[str, Any]

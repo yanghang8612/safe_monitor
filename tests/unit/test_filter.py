@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from safe_monitor.config import FilterCfg
 from safe_monitor.core.filter import Filter
@@ -12,7 +12,7 @@ def _event(title: str, sev: Severity) -> Event:
         title=title,
         severity=sev,
         category=[EventCategory.a],
-        received_at=datetime.now(timezone.utc),
+        received_at=datetime.now(UTC),
         raw={},
     )
 

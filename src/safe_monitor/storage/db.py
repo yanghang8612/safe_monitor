@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import aiosqlite
 
@@ -13,7 +13,7 @@ MIGRATIONS_DIR = Path(__file__).parent / "migrations"
 class Database:
     def __init__(self, path: Path):
         self.path = Path(path)
-        self._conn: Optional[aiosqlite.Connection] = None
+        self._conn: aiosqlite.Connection | None = None
 
     async def init(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -30,7 +30,7 @@ class Database:
         )
         async with self._conn.execute("SELECT MAX(version) FROM schema_version") as cur:
             row = await cur.fetchone()
-        current = (row[0] if row and row[0] is not None else 0)
+        current = row[0] if row and row[0] is not None else 0
         files = sorted(MIGRATIONS_DIR.glob("*.sql"))
         for f in files:
             ver = int(f.stem.split("_", 1)[0])
@@ -87,11 +87,11 @@ class Database:
                VALUES(?,?,?,?)
                ON CONFLICT(source) DO UPDATE SET
                  kind=excluded.kind, cursor=excluded.cursor, updated_at=excluded.updated_at""",
-            (source, kind, cursor, datetime.now(timezone.utc).isoformat()),
+            (source, kind, cursor, datetime.now(UTC).isoformat()),
         )
         await self._conn.commit()
 
-    async def get_checkpoint(self, source: str) -> Optional[dict[str, Any]]:
+    async def get_checkpoint(self, source: str) -> dict[str, Any] | None:
         assert self._conn is not None
         async with self._conn.execute(
             "SELECT source, kind, cursor, updated_at FROM checkpoints WHERE source = ?",
@@ -105,10 +105,10 @@ class Database:
         *,
         source: str,
         received_at: str,
-        published_at: Optional[str],
+        published_at: str | None,
         severity: str,
         title: str,
-        url: Optional[str],
+        url: str | None,
         raw_json: str,
         filter_decision: str,
     ) -> int:
