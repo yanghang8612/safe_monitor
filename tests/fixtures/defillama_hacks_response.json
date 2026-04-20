@@ -1,0 +1,4 @@
+[
+  {"name": "Old Hack", "date": 1600000000, "amount": 100000, "chains":["Ethereum"], "classification":"Exploit", "technique":"x", "link":"https://x"},
+  {"name": "Fresh Hack", "date": 1715000000, "amount": 12000000, "chains":["BSC"], "classification":"Exploit", "technique":"Reentrancy", "link":"https://y"}
+]
