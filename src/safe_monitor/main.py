@@ -77,9 +77,7 @@ async def _amain() -> None:
 
     from safe_monitor.core.scheduler import build_scheduler
 
-    scheduler = build_scheduler(
-        db, ttl_days=settings.config.dedup.ttl_days, publisher=publisher
-    )
+    scheduler = build_scheduler(db, ttl_days=settings.config.dedup.ttl_days, publisher=publisher)
     scheduler.start()
 
     sources = await _build_sources(

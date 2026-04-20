@@ -59,17 +59,13 @@ class TelegramIngestor(Source):
             entity_objs = [e[1] for e in entities]
             # Normalize peer_id (e.g. channels get a -100... prefix) so the
             # handler lookup matches what NewMessage emits.
-            peer_to_source: dict[int, str] = {
-                tg_utils.get_peer_id(e[1]): e[0] for e in entities
-            }
+            peer_to_source: dict[int, str] = {tg_utils.get_peer_id(e[1]): e[0] for e in entities}
 
             @self._client.on(events.NewMessage(chats=entity_objs))
             async def handler(event):
                 msg = event.message
                 peer_id = (
-                    tg_utils.get_peer_id(event.peer_id)
-                    if getattr(event, "peer_id", None)
-                    else None
+                    tg_utils.get_peer_id(event.peer_id) if getattr(event, "peer_id", None) else None
                 )
                 source_name = peer_to_source.get(peer_id, "unknown_tg") if peer_id else "unknown_tg"
                 text = (msg.message or "").strip()
