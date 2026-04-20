@@ -1,0 +1,35 @@
+sources:
+  api:
+    - name: defillama_hacks
+      endpoint: "https://api.llama.fi/hacks"
+      poll_interval_seconds: 300
+    - name: ofac_sdn
+      endpoint: "https://www.treasury.gov/ofac/downloads/sdn.xml"
+      poll_interval_seconds: 86400
+
+  telegram:
+    - name: peckshield_tg
+      username: "peckshield"
+    - name: slowmist_tg
+      username: "SlowMist_Team"
+    - name: certik_alert_tg
+      username: "CertiKAlert"
+    - name: whale_alert_tg
+      username: "whale_alert_io"
+    - name: scam_sniffer_tg
+      username: "scam_sniffer"
+    - name: wublockchain_tg
+      username: "wublockchain"
+    - name: binance_ann_tg
+      username: "binance_announcements"
+    - name: bybit_ann_tg
+      username: "Bybit_Announcements"
+
+filter:
+  min_severity: medium
+  deny_keywords:
+    - "airdrop"
+    - "giveaway"
+
+dedup:
+  ttl_days: 7
