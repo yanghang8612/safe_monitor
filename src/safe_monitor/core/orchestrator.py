@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 from collections.abc import Sequence
-from datetime import UTC
+from datetime import UTC, datetime, timedelta
 
 import structlog
 
@@ -82,9 +82,8 @@ class Orchestrator:
                 )
                 return
             ok = await self._publisher.publish(event)
-            from datetime import datetime
 
-            await self._db.log_event(
+            inserted_id = await self._db.log_event(
                 source=event.source,
                 received_at=event.received_at.isoformat(),
                 published_at=datetime.now(UTC).isoformat() if ok else None,
@@ -94,6 +93,13 @@ class Orchestrator:
                 raw_json=json.dumps(event.raw, default=str),
                 filter_decision="published" if ok else "publish_failed",
             )
+            if not ok:
+                next_retry = (datetime.now(UTC) + timedelta(minutes=10)).isoformat()
+                await self._db.record_failed(
+                    event_id=inserted_id,
+                    error="publisher returned False",
+                    next_retry_at=next_retry,
+                )
         except Exception as e:
             log.error("handle.error", error=str(e), source=raw.source)
 

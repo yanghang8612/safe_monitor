@@ -130,3 +130,49 @@ class Database:
             (event_id, error, next_retry_at),
         )
         await self._conn.commit()
+
+    async def get_pending_retries(self, now_iso: str) -> list[dict[str, Any]]:
+        """Return failed_events rows where next_retry_at <= now and retry_count < 5."""
+        assert self._conn is not None
+        async with self._conn.execute(
+            """SELECT id, event_id, last_error, retry_count, next_retry_at
+               FROM failed_events
+               WHERE next_retry_at <= ? AND retry_count < 5
+               ORDER BY next_retry_at ASC""",
+            (now_iso,),
+        ) as cur:
+            rows = await cur.fetchall()
+        return [dict(r) for r in rows]
+
+    async def update_retry(self, id: int, next_retry_at: str, increment: bool = True) -> None:
+        """Update next_retry_at and (optionally) bump retry_count by 1."""
+        assert self._conn is not None
+        if increment:
+            await self._conn.execute(
+                """UPDATE failed_events
+                   SET next_retry_at = ?, retry_count = retry_count + 1
+                   WHERE id = ?""",
+                (next_retry_at, id),
+            )
+        else:
+            await self._conn.execute(
+                "UPDATE failed_events SET next_retry_at = ? WHERE id = ?",
+                (next_retry_at, id),
+            )
+        await self._conn.commit()
+
+    async def delete_failed(self, id: int) -> None:
+        assert self._conn is not None
+        await self._conn.execute("DELETE FROM failed_events WHERE id = ?", (id,))
+        await self._conn.commit()
+
+    async def get_event_by_id(self, event_id: int) -> dict[str, Any] | None:
+        assert self._conn is not None
+        async with self._conn.execute(
+            """SELECT id, source, received_at, published_at, severity,
+                      title, url, raw_json, filter_decision
+               FROM event_log WHERE id = ?""",
+            (event_id,),
+        ) as cur:
+            row = await cur.fetchone()
+        return dict(row) if row else None
