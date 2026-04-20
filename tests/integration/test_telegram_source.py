@@ -46,6 +46,15 @@ async def test_ingestor_forwards_new_messages(tmp_path, monkeypatch):
 
     monkeypatch.setattr("safe_monitor.sources.telegram.TelegramClient", FakeTGClient)
 
+    # `tg_utils.get_peer_id` would normally normalize a SimpleNamespace entity
+    # through telethon internals; here we flatten it to just return `.id` (or
+    # the value itself if it's already an int) so the stub event integer
+    # `peer_id=555` matches `entity.id=555`.
+    def fake_get_peer_id(x):
+        return getattr(x, "id", x)
+
+    monkeypatch.setattr("safe_monitor.sources.telegram.tg_utils.get_peer_id", fake_get_peer_id)
+
     q: asyncio.Queue = asyncio.Queue()
     ingestor = TelegramIngestor(
         api_id=1,
@@ -62,8 +71,8 @@ async def test_ingestor_forwards_new_messages(tmp_path, monkeypatch):
         await asyncio.sleep(0.01)
         if handlers:
             break
-    # simulate an incoming event
-    event_obj = SimpleNamespace(message=fake_msg, chat_id=555)
+    # simulate an incoming event — the handler now uses event.peer_id
+    event_obj = SimpleNamespace(message=fake_msg, peer_id=555)
     await handlers[0](event_obj)
 
     raw = await asyncio.wait_for(q.get(), timeout=1)

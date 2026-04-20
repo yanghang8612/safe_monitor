@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 
 import structlog
 from telethon import TelegramClient, events
+from telethon import utils as tg_utils
 
 from safe_monitor.core.models import RawEvent
 from safe_monitor.sources.base import Source
@@ -38,24 +39,39 @@ class TelegramIngestor(Source):
         self._client = TelegramClient(self._session_path, self._api_id, self._api_hash)
         await self._client.start(phone=self._phone)
 
-        chat_id_to_source: dict[int, str] = {}
+        entities: list[tuple[str, object]] = []
         for source_name, username in self._channels:
             try:
                 ent = await self._client.get_entity(username)
-                chat_id_to_source[int(ent.id)] = source_name
-                log.info("tg.channel_bound", source=source_name, username=username, id=ent.id)
+                entities.append((source_name, ent))
+                log.info(
+                    "tg.channel_bound",
+                    source=source_name,
+                    username=username,
+                    id=getattr(ent, "id", None),
+                )
             except Exception as e:
                 log.warning("tg.channel_resolve_failed", username=username, error=str(e))
 
-        if not chat_id_to_source:
+        if not entities:
             log.warning("tg.no_channels_resolved", count=len(self._channels))
         else:
+            entity_objs = [e[1] for e in entities]
+            # Normalize peer_id (e.g. channels get a -100... prefix) so the
+            # handler lookup matches what NewMessage emits.
+            peer_to_source: dict[int, str] = {
+                tg_utils.get_peer_id(e[1]): e[0] for e in entities
+            }
 
-            @self._client.on(events.NewMessage(chats=list(chat_id_to_source.keys())))
+            @self._client.on(events.NewMessage(chats=entity_objs))
             async def handler(event):
                 msg = event.message
-                chat_id = int(event.chat_id) if hasattr(event, "chat_id") else None
-                source_name = chat_id_to_source.get(chat_id or 0, "unknown_tg")
+                peer_id = (
+                    tg_utils.get_peer_id(event.peer_id)
+                    if getattr(event, "peer_id", None)
+                    else None
+                )
+                source_name = peer_to_source.get(peer_id, "unknown_tg") if peer_id else "unknown_tg"
                 text = (msg.message or "").strip()
                 if not text:
                     return
@@ -64,7 +80,7 @@ class TelegramIngestor(Source):
                     source_kind="tg",
                     external_id=str(msg.id),
                     received_at=datetime.now(UTC),
-                    raw={"text": text, "msg_id": msg.id, "chat_id": chat_id},
+                    raw={"text": text, "msg_id": msg.id, "chat_id": peer_id},
                     text=text,
                     occurred_at=msg.date if hasattr(msg, "date") else None,
                 )
