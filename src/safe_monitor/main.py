@@ -76,6 +76,10 @@ async def _amain() -> None:
         chat_id=settings.tg_target_chat_id,
     )
 
+    from safe_monitor.core.scheduler import build_scheduler
+    scheduler = build_scheduler(db, ttl_days=settings.config.dedup.ttl_days)
+    scheduler.start()
+
     sources = await _build_sources(
         settings.config,
         db,
@@ -94,6 +98,7 @@ async def _amain() -> None:
 
     log.info("safe_monitor.start", sources=[s.name for s in sources])
     await orch.run()
+    scheduler.shutdown(wait=False)
     await db.close()
     log.info("safe_monitor.stopped")
 
