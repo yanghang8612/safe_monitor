@@ -1,0 +1,132 @@
+from __future__ import annotations
+
+import sqlite3
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Optional
+
+import aiosqlite
+
+MIGRATIONS_DIR = Path(__file__).parent / "migrations"
+
+
+class Database:
+    def __init__(self, path: Path):
+        self.path = Path(path)
+        self._conn: Optional[aiosqlite.Connection] = None
+
+    async def init(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._conn = await aiosqlite.connect(str(self.path))
+        self._conn.row_factory = sqlite3.Row
+        await self._conn.execute("PRAGMA journal_mode=WAL")
+        await self._conn.execute("PRAGMA foreign_keys=ON")
+        await self._run_migrations()
+
+    async def _run_migrations(self) -> None:
+        assert self._conn is not None
+        await self._conn.execute(
+            "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY)"
+        )
+        async with self._conn.execute("SELECT MAX(version) FROM schema_version") as cur:
+            row = await cur.fetchone()
+        current = (row[0] if row and row[0] is not None else 0)
+        files = sorted(MIGRATIONS_DIR.glob("*.sql"))
+        for f in files:
+            ver = int(f.stem.split("_", 1)[0])
+            if ver <= current:
+                continue
+            sql = f.read_text()
+            await self._conn.executescript(sql)
+            await self._conn.execute(
+                "INSERT OR REPLACE INTO schema_version(version) VALUES (?)", (ver,)
+            )
+            await self._conn.commit()
+
+    async def close(self) -> None:
+        if self._conn is not None:
+            await self._conn.close()
+            self._conn = None
+
+    async def check_and_insert_fingerprint(self, fingerprint: str, source: str) -> bool:
+        """Return True if fingerprint already existed; else insert and return False."""
+        assert self._conn is not None
+        async with self._conn.execute(
+            "SELECT 1 FROM fingerprints WHERE fingerprint = ?", (fingerprint,)
+        ) as cur:
+            row = await cur.fetchone()
+        if row is not None:
+            await self._conn.execute(
+                "UPDATE fingerprints SET event_count = event_count + 1 WHERE fingerprint = ?",
+                (fingerprint,),
+            )
+            await self._conn.commit()
+            return True
+        await self._conn.execute(
+            "INSERT INTO fingerprints(fingerprint, source) VALUES (?, ?)",
+            (fingerprint, source),
+        )
+        await self._conn.commit()
+        return False
+
+    async def prune_old_fingerprints(self, older_than_days: int) -> int:
+        assert self._conn is not None
+        await self._conn.execute(
+            "DELETE FROM fingerprints WHERE first_seen_at < datetime('now', ?)",
+            (f"-{int(older_than_days)} days",),
+        )
+        await self._conn.commit()
+        async with self._conn.execute("SELECT changes()") as cur:
+            row = await cur.fetchone()
+        return int(row[0]) if row else 0
+
+    async def set_checkpoint(self, source: str, kind: str, cursor: str) -> None:
+        assert self._conn is not None
+        await self._conn.execute(
+            """INSERT INTO checkpoints(source, kind, cursor, updated_at)
+               VALUES(?,?,?,?)
+               ON CONFLICT(source) DO UPDATE SET
+                 kind=excluded.kind, cursor=excluded.cursor, updated_at=excluded.updated_at""",
+            (source, kind, cursor, datetime.now(timezone.utc).isoformat()),
+        )
+        await self._conn.commit()
+
+    async def get_checkpoint(self, source: str) -> Optional[dict[str, Any]]:
+        assert self._conn is not None
+        async with self._conn.execute(
+            "SELECT source, kind, cursor, updated_at FROM checkpoints WHERE source = ?",
+            (source,),
+        ) as cur:
+            row = await cur.fetchone()
+        return dict(row) if row else None
+
+    async def log_event(
+        self,
+        *,
+        source: str,
+        received_at: str,
+        published_at: Optional[str],
+        severity: str,
+        title: str,
+        url: Optional[str],
+        raw_json: str,
+        filter_decision: str,
+    ) -> int:
+        assert self._conn is not None
+        cur = await self._conn.execute(
+            """INSERT INTO event_log(source, received_at, published_at,
+                 severity, title, url, raw_json, filter_decision)
+               VALUES (?,?,?,?,?,?,?,?)""",
+            (source, received_at, published_at, severity, title, url, raw_json, filter_decision),
+        )
+        await self._conn.commit()
+        return int(cur.lastrowid or 0)
+
+    async def record_failed(self, event_id: int, error: str, next_retry_at: str) -> None:
+        assert self._conn is not None
+        await self._conn.execute(
+            """INSERT INTO failed_events(event_id, last_error, retry_count, next_retry_at)
+               VALUES(?, ?, 0, ?)""",
+            (event_id, error, next_retry_at),
+        )
+        await self._conn.commit()
