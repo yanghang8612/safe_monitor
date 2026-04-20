@@ -30,7 +30,16 @@ class DefiLlamaHacksPoller(Source):
 
     async def poll_once(self, sink: asyncio.Queue[RawEvent]) -> None:
         cp = await self._db.get_checkpoint(self.name)
-        last_ts = int(cp["cursor"]) if cp and cp.get("cursor") else 0
+        if cp and cp.get("cursor"):
+            last_ts = int(cp["cursor"])
+        else:
+            # First run: don't flood the channel with the full historical
+            # hacks dump. Seed the checkpoint to "now" and exit; the next
+            # tick will emit only genuinely new entries.
+            last_ts = int(datetime.now(UTC).timestamp())
+            await self._db.set_checkpoint(self.name, kind="api_poll", cursor=str(last_ts))
+            log.info("defillama.first_run_seeded", last_ts=last_ts)
+            return
 
         async with httpx.AsyncClient(timeout=30) as client:
             r = await client.get(self._endpoint)
