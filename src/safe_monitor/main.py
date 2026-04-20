@@ -13,10 +13,19 @@ from safe_monitor.publishers.telegram import TelegramPublisher
 from safe_monitor.sources.base import Source
 from safe_monitor.sources.defillama import DefiLlamaHacksPoller
 from safe_monitor.sources.ofac import OfacSdnPoller
+from safe_monitor.sources.telegram import TelegramIngestor
 from safe_monitor.storage.db import Database
 
 
-async def _build_sources(cfg, db: Database) -> list[Source]:
+async def _build_sources(
+    cfg,
+    db: Database,
+    *,
+    settings_api_id: int,
+    settings_api_hash: str,
+    settings_session: str,
+    settings_phone: str,
+) -> list[Source]:
     sources: list[Source] = []
     for api in cfg.sources.api:
         if api.name == "defillama_hacks":
@@ -37,7 +46,20 @@ async def _build_sources(cfg, db: Database) -> list[Source]:
                     db=db,
                 )
             )
-        # Telegram ingestor added in Task 12
+    if cfg.sources.telegram:
+        # single ingestor multiplexes all channels
+        from safe_monitor.config import TgSourceCfg  # re-import for clarity
+        channels = [(c.name, c.username) for c in cfg.sources.telegram]
+        sources.append(
+            TelegramIngestor(
+                api_id=settings_api_id,
+                api_hash=settings_api_hash,
+                session_path=settings_session,
+                phone=settings_phone,
+                channels=channels,
+                db=db,
+            )
+        )
     return sources
 
 
@@ -54,7 +76,14 @@ async def _amain() -> None:
         chat_id=settings.tg_target_chat_id,
     )
 
-    sources = await _build_sources(settings.config, db)
+    sources = await _build_sources(
+        settings.config,
+        db,
+        settings_api_id=settings.tg_api_id,
+        settings_api_hash=settings.tg_api_hash,
+        settings_session=settings.tg_userbot_session,
+        settings_phone=settings.tg_userbot_phone,
+    )
     filter_ = Filter(settings.config.filter)
 
     orch = Orchestrator(sources=sources, publisher=publisher, db=db, filter_=filter_)
