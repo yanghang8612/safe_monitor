@@ -37,3 +37,34 @@ dedup:
     assert s.config.dedup.ttl_days == 5
     assert len(s.config.sources.api) == 1
     assert s.config.sources.telegram[0].username == "foo"
+    # Defaults
+    assert s.tg_ingest_mode == "rsshub"
+    assert s.rsshub_base_url == "http://rsshub:1200"
+    assert s.config.sources.telegram[0].poll_interval_seconds == 120
+
+
+def test_load_settings_without_userbot_creds(tmp_path: Path, monkeypatch):
+    """In rsshub mode, telethon env vars are not required."""
+    cfg = tmp_path / "c.yaml"
+    cfg.write_text(
+        """
+sources:
+  api: []
+  telegram:
+    - name: foo_tg
+      username: foo
+      poll_interval_seconds: 90
+"""
+    )
+    monkeypatch.setenv("SAFE_MONITOR_CONFIG", str(cfg))
+    monkeypatch.setenv("TG_BOT_TOKEN", "t")
+    monkeypatch.setenv("TG_TARGET_CHAT_ID", "42")
+    # Deliberately do NOT set TG_API_ID / TG_API_HASH / TG_USERBOT_PHONE
+    for k in ("TG_API_ID", "TG_API_HASH", "TG_USERBOT_PHONE"):
+        monkeypatch.delenv(k, raising=False)
+
+    s: Settings = load_settings()
+    assert s.tg_api_id == 0
+    assert s.tg_api_hash == ""
+    assert s.tg_userbot_phone == ""
+    assert s.config.sources.telegram[0].poll_interval_seconds == 90

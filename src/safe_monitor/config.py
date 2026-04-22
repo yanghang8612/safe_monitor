@@ -17,6 +17,7 @@ class ApiSourceCfg(BaseModel):
 class TgSourceCfg(BaseModel):
     name: str
     username: str
+    poll_interval_seconds: int = 120  # used in rsshub mode; ignored by telethon userbot
 
 
 class SourcesCfg(BaseModel):
@@ -42,10 +43,17 @@ class ConfigYaml(BaseModel):
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    tg_api_id: int = Field(..., alias="TG_API_ID")
-    tg_api_hash: str = Field(..., alias="TG_API_HASH")
-    tg_userbot_phone: str = Field(..., alias="TG_USERBOT_PHONE")
-    tg_userbot_session: str = Field(..., alias="TG_USERBOT_SESSION")
+    # Telegram ingestion mode: "userbot" (telethon, needs API credentials) or "rsshub" (no creds)
+    tg_ingest_mode: Literal["userbot", "rsshub"] = Field("rsshub", alias="TG_INGEST_MODE")
+    rsshub_base_url: str = Field("http://rsshub:1200", alias="RSSHUB_BASE_URL")
+
+    # Required only when TG_INGEST_MODE=userbot
+    tg_api_id: int = Field(0, alias="TG_API_ID")
+    tg_api_hash: str = Field("", alias="TG_API_HASH")
+    tg_userbot_phone: str = Field("", alias="TG_USERBOT_PHONE")
+    tg_userbot_session: str = Field("./data/userbot.session", alias="TG_USERBOT_SESSION")
+
+    # Required always (push side)
     tg_bot_token: str = Field(..., alias="TG_BOT_TOKEN")
     tg_target_chat_id: int = Field(..., alias="TG_TARGET_CHAT_ID")
 
