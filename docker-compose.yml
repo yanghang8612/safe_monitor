@@ -10,11 +10,37 @@ services:
       SAFE_MONITOR_DB_PATH: /app/data/safe_monitor.db
       SAFE_MONITOR_CONFIG: /app/config.yaml
       TG_USERBOT_SESSION: /app/data/userbot.session
+      RSSHUB_BASE_URL: http://rsshub:1200
     volumes:
       - ./data:/app/data
       - ./config.yaml:/app/config.yaml:ro
+    depends_on:
+      - rsshub
     healthcheck:
       test: ["CMD", "uv", "run", "python", "-c", "print('ok')"]
       interval: 1m
       timeout: 10s
       retries: 3
+
+  rsshub:
+    image: diygod/rsshub:latest
+    container_name: safe_monitor_rsshub
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      CACHE_TYPE: redis
+      REDIS_URL: redis://redis:6379/
+      # Reduce noise; tweak if you want more logs
+      LOGGER_LEVEL: info
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    container_name: safe_monitor_redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:
