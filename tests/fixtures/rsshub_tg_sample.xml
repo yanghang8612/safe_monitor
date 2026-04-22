@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>PeckShield Inc (@peckshield) Telegram</title>
+<link>https://t.me/s/peckshield</link>
+<description>RSSHub channel mirror</description>
+<item>
+<title>Exploit alert</title>
+<description>&lt;p&gt;Hi @Resolvlabs, Resolv was exploited. Approximately $80M was drained. Attack tx: 0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb&lt;/p&gt;</description>
+<pubDate>Tue, 21 Apr 2026 10:00:00 +0000</pubDate>
+<guid>https://t.me/peckshield/12346</guid>
+<link>https://t.me/peckshield/12346</link>
+</item>
+<item>
+<title>Old message</title>
+<description>&lt;p&gt;Older routine update.&lt;/p&gt;</description>
+<pubDate>Mon, 20 Apr 2026 09:00:00 +0000</pubDate>
+<guid>https://t.me/peckshield/12345</guid>
+<link>https://t.me/peckshield/12345</link>
+</item>
+</channel>
+</rss>
