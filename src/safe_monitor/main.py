@@ -13,6 +13,7 @@ from safe_monitor.publishers.telegram import TelegramPublisher
 from safe_monitor.sources.base import Source
 from safe_monitor.sources.defillama import DefiLlamaHacksPoller
 from safe_monitor.sources.ofac import OfacSdnPoller
+from safe_monitor.sources.rsshub_tg import RSSHubTGPoller
 from safe_monitor.sources.telegram import TelegramIngestor
 from safe_monitor.storage.db import Database
 
@@ -25,6 +26,8 @@ async def _build_sources(
     settings_api_hash: str,
     settings_session: str,
     settings_phone: str,
+    settings_tg_mode: str,
+    settings_rsshub_base: str,
 ) -> list[Source]:
     sources: list[Source] = []
     for api in cfg.sources.api:
@@ -47,18 +50,31 @@ async def _build_sources(
                 )
             )
     if cfg.sources.telegram:
-        # single ingestor multiplexes all channels
-        channels = [(c.name, c.username) for c in cfg.sources.telegram]
-        sources.append(
-            TelegramIngestor(
-                api_id=settings_api_id,
-                api_hash=settings_api_hash,
-                session_path=settings_session,
-                phone=settings_phone,
-                channels=channels,
-                db=db,
+        if settings_tg_mode == "rsshub":
+            # One poller per channel; they all hit the shared RSSHub instance
+            for ch in cfg.sources.telegram:
+                sources.append(
+                    RSSHubTGPoller(
+                        name=ch.name,
+                        username=ch.username,
+                        rsshub_base_url=settings_rsshub_base,
+                        poll_interval_seconds=ch.poll_interval_seconds,
+                        db=db,
+                    )
+                )
+        else:
+            # telethon userbot: single ingestor multiplexes all channels
+            channels = [(c.name, c.username) for c in cfg.sources.telegram]
+            sources.append(
+                TelegramIngestor(
+                    api_id=settings_api_id,
+                    api_hash=settings_api_hash,
+                    session_path=settings_session,
+                    phone=settings_phone,
+                    channels=channels,
+                    db=db,
+                )
             )
-        )
     return sources
 
 
@@ -87,6 +103,8 @@ async def _amain() -> None:
         settings_api_hash=settings.tg_api_hash,
         settings_session=settings.tg_userbot_session,
         settings_phone=settings.tg_userbot_phone,
+        settings_tg_mode=settings.tg_ingest_mode,
+        settings_rsshub_base=settings.rsshub_base_url,
     )
     filter_ = Filter(settings.config.filter)
 
