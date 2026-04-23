@@ -63,7 +63,7 @@ class OfacSdnPoller(Source):
         seen_keys = set((cp.get("cursor") or "").split(",")) if cp else set()
         seen_keys.discard("")
 
-        async with httpx.AsyncClient(timeout=60) as client:
+        async with httpx.AsyncClient(timeout=60, follow_redirects=True) as client:
             r = await client.get(self._endpoint)
             r.raise_for_status()
             xml_text = r.text

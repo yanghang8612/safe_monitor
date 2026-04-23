@@ -1,39 +1,47 @@
 sources:
   api:
-    - name: defillama_hacks
-      endpoint: "https://api.llama.fi/hacks"
-      poll_interval_seconds: 300
+    # DefiLlama hacks API became paywalled (402 Payment Required) after our
+    # design date. Disabled until we wire an alternative (Rekt.news RSS,
+    # DeFiYield API, etc.). Uncomment if you get a paid plan.
+    # - name: defillama_hacks
+    #   endpoint: "https://api.llama.fi/hacks"
+    #   poll_interval_seconds: 300
     - name: ofac_sdn
+      # Redirects from the old www.treasury.gov URL; httpx follow_redirects=True handles it.
       endpoint: "https://www.treasury.gov/ofac/downloads/sdn.xml"
       poll_interval_seconds: 86400
 
-  # In TG_INGEST_MODE=rsshub (default), each channel is polled via RSSHub at poll_interval_seconds.
-  # In TG_INGEST_MODE=userbot, one telethon ingestor multiplexes all channels in real-time and poll_interval_seconds is ignored.
-  telegram:
-    - name: peckshield_tg
-      username: "peckshield"
-      poll_interval_seconds: 120
-    - name: slowmist_tg
-      username: "SlowMist_Team"
-      poll_interval_seconds: 120
-    - name: certik_alert_tg
-      username: "CertiKAlert"
-      poll_interval_seconds: 120
-    - name: whale_alert_tg
-      username: "whale_alert_io"
-      poll_interval_seconds: 120
-    - name: scam_sniffer_tg
-      username: "scam_sniffer"
-      poll_interval_seconds: 120
-    - name: wublockchain_tg
-      username: "wublockchain"
-      poll_interval_seconds: 120
-    - name: binance_ann_tg
-      username: "binance_announcements"
-      poll_interval_seconds: 300
-    - name: bybit_ann_tg
-      username: "Bybit_Announcements"
-      poll_interval_seconds: 300
+  # TG channel list is temporarily empty because we couldn't pull the RSSHub
+  # image (network/TLS issues) and Telegram API registration (userbot) failed.
+  # Once RSSHub container is up (docker pull diygod/rsshub:latest succeeds),
+  # uncomment the channels below and set RSSHUB_BASE_URL in .env.
+  telegram: []
+  #
+  # telegram:
+  #   - name: peckshield_tg
+  #     username: "peckshield"
+  #     poll_interval_seconds: 120
+  #   - name: slowmist_tg
+  #     username: "SlowMist_Team"
+  #     poll_interval_seconds: 120
+  #   - name: certik_alert_tg
+  #     username: "CertiKAlert"
+  #     poll_interval_seconds: 120
+  #   - name: whale_alert_tg
+  #     username: "whale_alert_io"
+  #     poll_interval_seconds: 120
+  #   - name: scam_sniffer_tg
+  #     username: "scam_sniffer"
+  #     poll_interval_seconds: 120
+  #   - name: wublockchain_tg
+  #     username: "wublockchain"
+  #     poll_interval_seconds: 120
+  #   - name: binance_ann_tg
+  #     username: "binance_announcements"
+  #     poll_interval_seconds: 300
+  #   - name: bybit_ann_tg
+  #     username: "Bybit_Announcements"
+  #     poll_interval_seconds: 300
 
 filter:
   min_severity: medium
