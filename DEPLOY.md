@@ -13,9 +13,9 @@
 git clone <your-repo-url> /opt/safe_monitor
 cd /opt/safe_monitor
 
-# 方式 B: 直接 rsync 当前 Mac 的工作目录（排除 venv/缓存）
+# 方式 B: 直接 rsync 当前工作目录（排除 venv/缓存）
 rsync -av --exclude '.venv' --exclude '__pycache__' --exclude 'data/*.db-*' \
-  /Users/asuka/Works/Sandbox/safe_monitor/ user@server:/opt/safe_monitor/
+  ./ user@server:/opt/safe_monitor/
 ```
 
 ### 2. 把三份运行期状态拷过去
@@ -23,8 +23,8 @@ rsync -av --exclude '.venv' --exclude '__pycache__' --exclude 'data/*.db-*' \
 这三个文件不进 git，必须手动 scp：
 
 ```bash
-# 在本地 Mac 上执行
-cd /Users/asuka/Works/Sandbox/safe_monitor
+# 在本地工作目录执行
+cd <local-repo>  # i.e. the directory you cloned this repo into
 
 scp .env                     user@server:/opt/safe_monitor/.env
 scp data/userbot.session     user@server:/opt/safe_monitor/data/userbot.session
@@ -116,7 +116,7 @@ tar czf safe_monitor_data_$(date +%F).tgz data/
 
 ### Bot 推送 chat_not_found
 
-确保 bot（@ChenDveNotifierTestBot）和目标 chat（id `1498585327`）至少有过一次互动——
+确保 bot（`@<your-bot-username>`）和目标 chat（id `<your-chat-id>`）至少有过一次互动——
 你在客户端给 bot 发任意消息（或 `/start`）即可。
 
 ### OFAC 抓取报 SSL/超时
