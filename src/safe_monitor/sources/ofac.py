@@ -60,6 +60,7 @@ class OfacSdnPoller(Source):
 
     async def poll_once(self, sink: asyncio.Queue[RawEvent]) -> None:
         cp = await self._db.get_checkpoint(self.name)
+        first_run = cp is None
         seen_keys = set((cp.get("cursor") or "").split(",")) if cp else set()
         seen_keys.discard("")
 
@@ -69,6 +70,17 @@ class OfacSdnPoller(Source):
             xml_text = r.text
 
         entries = self._extract_crypto_addrs(xml_text)
+        all_current = {f"{e['uid']}:{e['address']}" for e in entries}
+
+        if first_run:
+            # Seed checkpoint with current snapshot so we never re-broadcast
+            # the entire historical SDN list as "new" events.
+            await self._db.set_checkpoint(
+                self.name, kind="api_poll", cursor=",".join(sorted(all_current))
+            )
+            log.info("ofac.poll_seeded", seen=len(all_current), emitted=0)
+            return
+
         new_keys = []
         emitted = 0
         for e in entries:
