@@ -11,37 +11,33 @@ sources:
       endpoint: "https://www.treasury.gov/ofac/downloads/sdn.xml"
       poll_interval_seconds: 86400
 
-  # TG channel list is temporarily empty because we couldn't pull the RSSHub
-  # image (network/TLS issues) and Telegram API registration (userbot) failed.
-  # Once RSSHub container is up (docker pull diygod/rsshub:latest succeeds),
-  # uncomment the channels below and set RSSHUB_BASE_URL in .env.
-  telegram: []
-  #
-  # telegram:
-  #   - name: peckshield_tg
-  #     username: "peckshield"
-  #     poll_interval_seconds: 120
-  #   - name: slowmist_tg
-  #     username: "SlowMist_Team"
-  #     poll_interval_seconds: 120
-  #   - name: certik_alert_tg
-  #     username: "CertiKAlert"
-  #     poll_interval_seconds: 120
-  #   - name: whale_alert_tg
-  #     username: "whale_alert_io"
-  #     poll_interval_seconds: 120
-  #   - name: scam_sniffer_tg
-  #     username: "scam_sniffer"
-  #     poll_interval_seconds: 120
-  #   - name: wublockchain_tg
-  #     username: "wublockchain"
-  #     poll_interval_seconds: 120
-  #   - name: binance_ann_tg
-  #     username: "binance_announcements"
-  #     poll_interval_seconds: 300
-  #   - name: bybit_ann_tg
-  #     username: "Bybit_Announcements"
-  #     poll_interval_seconds: 300
+  telegram:
+    - name: peckshield_tg
+      username: "peckshield"
+      poll_interval_seconds: 120
+    # TODO: SlowMist_Team username does not resolve; find correct handle.
+    # - name: slowmist_tg
+    #   username: "SlowMist_Team"
+    #   poll_interval_seconds: 120
+    - name: certik_alert_tg
+      username: "CertiKAlert"
+      poll_interval_seconds: 120
+    - name: whale_alert_tg
+      username: "whale_alert_io"
+      poll_interval_seconds: 120
+    - name: scam_sniffer_tg
+      username: "scam_sniffer"
+      poll_interval_seconds: 120
+    # TODO: wublockchain handle does not resolve; find correct handle.
+    # - name: wublockchain_tg
+    #   username: "wublockchain"
+    #   poll_interval_seconds: 120
+    - name: binance_ann_tg
+      username: "binance_announcements"
+      poll_interval_seconds: 300
+    - name: bybit_ann_tg
+      username: "Bybit_Announcements"
+      poll_interval_seconds: 300
 
 filter:
   min_severity: medium
