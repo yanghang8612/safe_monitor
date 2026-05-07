@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 import structlog
 from telethon import TelegramClient, events
 from telethon import utils as tg_utils
+from telethon.tl.functions.channels import JoinChannelRequest
 
 from safe_monitor.core.models import RawEvent
 from safe_monitor.sources.base import Source
@@ -43,6 +44,15 @@ class TelegramIngestor(Source):
         for source_name, username in self._channels:
             try:
                 ent = await self._client.get_entity(username)
+                try:
+                    await self._client(JoinChannelRequest(ent))
+                except Exception as je:
+                    log.warning(
+                        "tg.channel_join_failed",
+                        source=source_name,
+                        username=username,
+                        error=str(je),
+                    )
                 entities.append((source_name, ent))
                 log.info(
                     "tg.channel_bound",
