@@ -10,6 +10,17 @@ sources:
       # Redirects from the old www.treasury.gov URL; httpx follow_redirects=True handles it.
       endpoint: "https://www.treasury.gov/ofac/downloads/sdn.xml"
       poll_interval_seconds: 86400
+    # Forta Network: decentralised on-chain detection bots, public GraphQL.
+    # Severity comes from the alert (HIGH/CRITICAL only), so it bypasses the
+    # keyword-based scorer and reliably clears min_severity=medium.
+    - name: forta
+      endpoint: "https://api.forta.network/graphql"
+      poll_interval_seconds: 60
+    # Rekt.news: weekly post-mortems of major exploits. Low frequency,
+    # high signal — every entry is by definition an incident worth pushing.
+    - name: rekt_news
+      endpoint: "https://rekt.news/rss/feed.xml"
+      poll_interval_seconds: 3600
 
   telegram:
     # @peckshield is the discussion group (low-signal team chatter, retweets).

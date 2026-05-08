@@ -78,6 +78,46 @@ def test_normalize_ofac_sdn():
     assert "OFAC" in ev.title
 
 
+def test_normalize_forta_passes_severity_hint():
+    raw = RawEvent(
+        source="forta",
+        source_kind="api",
+        external_id="0xhash1",
+        received_at=datetime.now(UTC),
+        raw={
+            "hash": "0xhash1",
+            "name": "Anomalous Approval",
+            "description": "non-keyword text that the scorer would otherwise rate low",
+            "severity": "CRITICAL",
+            "chainId": 1,
+            "createdAt": "2026-05-08T10:00:00Z",
+            "source": {"transactionHash": "0xtx1"},
+        },
+    )
+    ev = Normalizer().normalize(raw)
+    assert ev is not None
+    assert ev.severity == Severity.critical
+    assert ev.url and "etherscan.io" in ev.url
+
+
+def test_normalize_rekt_always_high_regardless_of_text():
+    raw = RawEvent(
+        source="rekt_news",
+        source_kind="api",
+        external_id="https://rekt.news/x",
+        received_at=datetime.now(UTC),
+        raw={
+            "title": "Some Project - Rekt",
+            "link": "https://rekt.news/some-project",
+            "description": "<p>boring excerpt</p>",
+        },
+    )
+    ev = Normalizer().normalize(raw)
+    assert ev is not None
+    assert ev.severity == Severity.high
+    assert ev.url == "https://rekt.news/some-project"
+
+
 def test_fingerprint_stable_same_day():
     import re
 
