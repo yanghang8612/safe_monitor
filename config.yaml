@@ -12,32 +12,41 @@ sources:
       poll_interval_seconds: 86400
 
   telegram:
+    # @peckshield is the discussion group (low-signal team chatter, retweets).
+    # @PeckShieldAlert is the broadcast channel where actual hack alerts go.
     - name: peckshield_tg
-      username: "peckshield"
-      poll_interval_seconds: 120
-    # TODO: SlowMist_Team username does not resolve; find correct handle.
-    # - name: slowmist_tg
-    #   username: "SlowMist_Team"
-    #   poll_interval_seconds: 120
-    - name: certik_alert_tg
-      username: "CertiKAlert"
-      poll_interval_seconds: 120
-    - name: whale_alert_tg
-      username: "whale_alert_io"
+      username: "PeckShieldAlert"
       poll_interval_seconds: 120
     - name: scam_sniffer_tg
       username: "scam_sniffer"
       poll_interval_seconds: 120
+    # Disabled after 26h prod observation: 60 messages ingested, 0 passed
+    # severity filter. These channels broadcast off-topic content for our
+    # use case (large-transfer notifications and exchange listings/maintenance,
+    # not security incidents). Re-enable only with a per-source severity policy.
+    # - name: whale_alert_tg
+    #   username: "whale_alert_io"
+    #   poll_interval_seconds: 120
+    # - name: binance_ann_tg
+    #   username: "binance_announcements"
+    #   poll_interval_seconds: 300
+    # - name: bybit_ann_tg
+    #   username: "Bybit_Announcements"
+    #   poll_interval_seconds: 300
+    # @CertiKAlert resolves to "Certik Alert (Meme)" -- joke channel, not the
+    # real alerts. Real-time CertiK exploit alerts are on X (@CertiKAlert there)
+    # not Telegram. Plan: pull via RSSHub→Twitter once we add that path.
+    # - name: certik_alert_tg
+    #   username: "CertiKAlert"
+    #   poll_interval_seconds: 120
+    # TODO: SlowMist_Team username does not resolve; find correct handle.
+    # - name: slowmist_tg
+    #   username: "SlowMist_Team"
+    #   poll_interval_seconds: 120
     # TODO: wublockchain handle does not resolve; find correct handle.
     # - name: wublockchain_tg
     #   username: "wublockchain"
     #   poll_interval_seconds: 120
-    - name: binance_ann_tg
-      username: "binance_announcements"
-      poll_interval_seconds: 300
-    - name: bybit_ann_tg
-      username: "Bybit_Announcements"
-      poll_interval_seconds: 300
 
 filter:
   min_severity: medium
