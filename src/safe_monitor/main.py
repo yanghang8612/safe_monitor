@@ -134,7 +134,9 @@ async def _amain() -> None:
     await db.init()
 
     translator = None
+    classifier = None
     if settings.deepseek_api_key:
+        from safe_monitor.publishers.classifier import WebSecurityClassifier
         from safe_monitor.publishers.translator import OpenAITranslator
 
         translator = OpenAITranslator(
@@ -142,15 +144,25 @@ async def _amain() -> None:
             model=settings.deepseek_model,
             base_url="https://api.deepseek.com",
         )
-        log.info("translator.enabled", provider="deepseek", model=settings.deepseek_model)
+        classifier = WebSecurityClassifier(
+            api_key=settings.deepseek_api_key,
+            model=settings.deepseek_model,
+            base_url="https://api.deepseek.com",
+        )
+        log.info("llm.enabled", provider="deepseek", model=settings.deepseek_model)
     elif settings.openai_api_key:
+        from safe_monitor.publishers.classifier import WebSecurityClassifier
         from safe_monitor.publishers.translator import OpenAITranslator
 
         translator = OpenAITranslator(
             api_key=settings.openai_api_key,
             model=settings.openai_model,
         )
-        log.info("translator.enabled", provider="openai", model=settings.openai_model)
+        classifier = WebSecurityClassifier(
+            api_key=settings.openai_api_key,
+            model=settings.openai_model,
+        )
+        log.info("llm.enabled", provider="openai", model=settings.openai_model)
 
     publisher = TelegramPublisher(
         bot_token=settings.tg_bot_token,
@@ -183,7 +195,7 @@ async def _amain() -> None:
         settings_rsshub_base=settings.rsshub_base_url,
         settings_x_api_key=settings.x_api_key,
     )
-    filter_ = Filter(settings.config.filter)
+    filter_ = Filter(settings.config.filter, classifier=classifier)
 
     orch = Orchestrator(sources=sources, publisher=publisher, db=db, filter_=filter_)
 

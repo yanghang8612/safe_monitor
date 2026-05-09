@@ -198,3 +198,17 @@ delivery. Estimate per non-Chinese alert:
 |--------------------|------------------------|---------------|
 | `deepseek-chat`    | ~300 + 200 tokens      | ~$0.005       |
 | `gpt-4o-mini`      | same                   | ~$0.30        |
+
+## Topic classifier (auto-enabled with translation)
+
+The same LLM key (DeepSeek or OpenAI) also gates X-source alerts on
+"is this Web3 security?". S-tier researcher accounts often post off-topic
+content (gaming, memes, personal life) — without this gate the bot would
+spam you with all of it.
+
+- Runs **only on `x_*` sources** (Forta / OFAC / Rekt are pre-curated,
+  trusted without an LLM check).
+- 5 s timeout; fails OPEN — a classifier outage never silently drops
+  alerts.
+- Asks for one token (`YES`/`NO`); ~60 input + 1 output tokens per call.
+  At ~1500 X events / month with `deepseek-chat`: ~$0.001/month.

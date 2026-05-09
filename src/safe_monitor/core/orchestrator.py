@@ -69,7 +69,7 @@ class Orchestrator:
             if await self._deduper.is_duplicate(event):
                 log.info("event.dedup", fp=event.fingerprint, source=raw.source)
                 return
-            if not self._filter.allow(event):
+            if not await self._filter.allow(event):
                 await self._db.log_event(
                     source=event.source,
                     received_at=event.received_at.isoformat(),
