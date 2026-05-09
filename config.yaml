@@ -38,7 +38,7 @@ sources:
     websocket_enabled: false
     websocket_url: "wss://ws.twitterapi.io/twitter/tweet/websocket"
     rest_base_url: "https://api.twitterapi.io"
-    poll_interval_seconds: 600
+    poll_interval_seconds: 300
     # advanced_search batches handles into OR queries with since_time, so an
     # idle batch costs the 15-credit floor regardless of size — ~25× cheaper
     # than per-handle last_tweets. Flip to "last_tweets" to fall back.
