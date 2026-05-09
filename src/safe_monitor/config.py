@@ -76,10 +76,14 @@ class Settings(BaseSettings):
 
     x_api_key: str = Field("", alias="X_API_KEY")
 
-    # Optional translation: when OPENAI_API_KEY is set, non-Chinese alerts get
+    # Optional translation: when an LLM api key is set, non-Chinese alerts get
     # translated to Simplified Chinese before being formatted into TG messages.
+    # DEEPSEEK_API_KEY takes precedence over OPENAI_API_KEY when both are set
+    # (DeepSeek is ~50× cheaper and gives equal/better Simplified-Chinese output).
     openai_api_key: str = Field("", alias="OPENAI_API_KEY")
     openai_model: str = Field("gpt-4o-mini", alias="OPENAI_MODEL")
+    deepseek_api_key: str = Field("", alias="DEEPSEEK_API_KEY")
+    deepseek_model: str = Field("deepseek-chat", alias="DEEPSEEK_MODEL")
 
     db_path: str = Field("./data/safe_monitor.db", alias="SAFE_MONITOR_DB_PATH")
     log_level: str = Field("INFO", alias="LOG_LEVEL")

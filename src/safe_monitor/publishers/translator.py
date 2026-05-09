@@ -41,8 +41,19 @@ class Translator(Protocol):
 
 
 class OpenAITranslator:
-    def __init__(self, *, api_key: str, model: str = "gpt-4o-mini", timeout: float = 8.0):
-        self._client = AsyncOpenAI(api_key=api_key, timeout=timeout)
+    """Translator over the OpenAI chat-completions API. Works against any
+    OpenAI-compatible endpoint by passing `base_url` (e.g. DeepSeek:
+    `https://api.deepseek.com`)."""
+
+    def __init__(
+        self,
+        *,
+        api_key: str,
+        model: str = "gpt-4o-mini",
+        base_url: str | None = None,
+        timeout: float = 8.0,
+    ):
+        self._client = AsyncOpenAI(api_key=api_key, base_url=base_url, timeout=timeout)
         self._model = model
 
     async def translate(self, text: str) -> str:

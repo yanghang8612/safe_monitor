@@ -53,6 +53,17 @@ async def test_translator_falls_back_to_original_on_error():
     assert out == "original text"
 
 
+def test_translator_accepts_custom_base_url_for_deepseek():
+    # DeepSeek is OpenAI-compatible — same SDK, different base_url + model.
+    t = OpenAITranslator(
+        api_key="sk-deepseek",
+        model="deepseek-chat",
+        base_url="https://api.deepseek.com",
+    )
+    assert t._model == "deepseek-chat"
+    assert "deepseek.com" in str(t._client.base_url)
+
+
 @pytest.mark.asyncio
 async def test_translator_returns_original_for_empty_input():
     t = OpenAITranslator(api_key="sk-test")

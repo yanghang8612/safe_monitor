@@ -134,14 +134,23 @@ async def _amain() -> None:
     await db.init()
 
     translator = None
-    if settings.openai_api_key:
+    if settings.deepseek_api_key:
+        from safe_monitor.publishers.translator import OpenAITranslator
+
+        translator = OpenAITranslator(
+            api_key=settings.deepseek_api_key,
+            model=settings.deepseek_model,
+            base_url="https://api.deepseek.com",
+        )
+        log.info("translator.enabled", provider="deepseek", model=settings.deepseek_model)
+    elif settings.openai_api_key:
         from safe_monitor.publishers.translator import OpenAITranslator
 
         translator = OpenAITranslator(
             api_key=settings.openai_api_key,
             model=settings.openai_model,
         )
-        log.info("translator.enabled", model=settings.openai_model)
+        log.info("translator.enabled", provider="openai", model=settings.openai_model)
 
     publisher = TelegramPublisher(
         bot_token=settings.tg_bot_token,
