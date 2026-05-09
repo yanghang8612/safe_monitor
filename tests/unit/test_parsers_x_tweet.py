@@ -49,6 +49,38 @@ def test_parse_chinese_tier_d_emits_zh_keyword_match():
     assert p["title"].startswith("@WuBlockchain")
 
 
+def test_parse_quoted_tweet_appended_to_body():
+    # RTs/quotes: original tweet's preview text is truncated by Twitter; the full
+    # content of the original lives in `quoted_tweet` and we should surface it.
+    raw = {
+        "id": "12345",
+        "text": "RT @bax1337: KelpDAO/Arbitrum SDNY case update: court ruled Arbitrum DA…",
+        "author": {"id": "1", "userName": "tayvano_"},
+        "quoted_tweet": {
+            "id": "67890",
+            "text": "KelpDAO/Arbitrum SDNY case update: court ruled Arbitrum DAO can transfer the recovered ~$71M into a multisig managed by Aave & others.",
+            "author": {"userName": "bax1337"},
+        },
+    }
+    p = parse_x_tweet(raw, tier="S")
+    # Title is just the handle; body holds RT preview + full quoted text.
+    assert p["title"] == "@tayvano_"
+    assert "$71M" in p["body"]
+    assert "@bax1337:" in p["body"]
+
+
+def test_parse_quoted_tweet_skipped_when_already_in_text():
+    # If the preview text already contains the full quoted content, don't dup it.
+    raw = {
+        "id": "1",
+        "text": "Quoted: Resolv exploited for 80M",
+        "author": {"id": "1", "userName": "x"},
+        "quoted_tweet": {"text": "Resolv exploited for 80M", "author": {"userName": "y"}},
+    }
+    p = parse_x_tweet(raw, tier="S")
+    assert p["body"].count("Resolv exploited for 80M") == 1
+
+
 def test_parse_missing_id_raises():
     import pytest as _pt
     with _pt.raises(ValueError):

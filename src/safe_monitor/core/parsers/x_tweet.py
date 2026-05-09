@@ -52,11 +52,25 @@ def parse_x_tweet(tweet: dict[str, Any], *, tier: str) -> dict[str, Any]:
     )
     text = (tweet.get("text") or tweet.get("full_text") or "").strip()
 
+    # When this tweet is an RT/quote, the visible `text` is Twitter's truncated
+    # "RT @user: ..." preview. The full content of the original lives in the
+    # `quoted_tweet` object — append it so the alert isn't missing the actual
+    # information.
+    quoted = tweet.get("quoted_tweet") or {}
+    quoted_text = (quoted.get("text") or quoted.get("full_text") or "").strip()
+    if quoted_text and quoted_text not in text:
+        q_user = quoted.get("author") or quoted.get("user") or {}
+        q_screen = q_user.get("userName") or q_user.get("screen_name") or ""
+        prefix = f"@{q_screen}: " if q_screen else ""
+        text = f"{text}\n\n— {prefix}{quoted_text}"
+
     # Always use the canonical x.com permalink — entities[urls] is for embedded
     # links in the tweet body, not the tweet's own permalink.
     url = _canonical_url(screen, tid)
 
-    title = f"@{screen}: " + (text[:80] + ("…" if len(text) > 80 else ""))
+    # Title is just the author handle — the full content lives in body.
+    # Repeating a truncated copy in the title was duplication + visual noise.
+    title = f"@{screen}"
 
     severity: Severity | None = Severity.high if tier in _HIGH_TIERS else None
 
