@@ -58,7 +58,10 @@ class Normalizer:
         sev = parsed.get("severity") or score_severity(f"{title} {body or ''}", loss_usd)
 
         fp_source = "x" if raw.source_kind == "x" else raw.source
-        fp = compute_fp(fp_source, title, raw.received_at)
+        # X tweets use `@handle` as title (display-only) — pass canonical URL
+        # (contains tweet id) so per-tweet uniqueness is preserved.
+        fp_key = url if raw.source_kind == "x" else None
+        fp = compute_fp(fp_source, title, raw.received_at, key=fp_key)
 
         return Event(
             fingerprint=fp,

@@ -128,6 +128,38 @@ def test_fingerprint_stable_same_day():
     assert re.fullmatch(r"[0-9a-f]{64}", a.fingerprint)
 
 
+def test_x_tweets_same_handle_same_day_get_distinct_fingerprints():
+    """Regression: x_tweet parser puts only `@handle` in title, so the old
+    `(source, title, day)` fingerprint collapsed every same-day tweet from one
+    account into a single fingerprint — silently dedup'ing all but the first.
+    With the canonical URL (tweet id) as fingerprint key, distinct tweets from
+    one handle on the same day must produce distinct fingerprints."""
+    received = datetime.now(UTC)
+    handle = "whale_alert"
+    tier = "B"
+
+    def _raw(tid: str) -> RawEvent:
+        return RawEvent(
+            source="x_polling",
+            source_kind="x",
+            external_id=tid,
+            received_at=received,
+            raw={
+                "id_str": tid,
+                "text": f"transfer #{tid}",
+                "user": {"id_str": "1", "screen_name": handle},
+                "_tier": tier,
+            },
+            text=f"transfer #{tid}",
+        )
+
+    a = Normalizer().normalize(_raw("1789000000000000001"))
+    b = Normalizer().normalize(_raw("1789000000000000002"))
+    assert a is not None and b is not None
+    assert a.title == b.title == f"@{handle}"
+    assert a.fingerprint != b.fingerprint
+
+
 def test_normalizer_routes_x_source_kind_to_x_parser():
     raw = RawEvent(
         source="x_websocket",
