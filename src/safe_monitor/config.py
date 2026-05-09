@@ -27,6 +27,7 @@ class XHandleCfg(BaseModel):
 
 class XSourceCfg(BaseModel):
     enabled: bool = False
+    websocket_enabled: bool = True
     websocket_url: str = "wss://ws.twitterapi.io/twitter/tweet/websocket"
     rest_base_url: str = "https://api.twitterapi.io"
     poll_interval_seconds: int = 600

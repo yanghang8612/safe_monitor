@@ -105,15 +105,16 @@ async def _build_sources(
             from safe_monitor.sources.x_polling import XPollingSource
             from safe_monitor.sources.x_websocket import XWebSocketSource
 
-            sources.append(
-                XWebSocketSource(
-                    api_key=settings_x_api_key,
-                    websocket_url=xcfg.websocket_url,
-                    ws_reconnect_min_seconds=xcfg.ws_reconnect_min_seconds,
-                    ws_max_consecutive_failures=xcfg.ws_max_consecutive_failures,
-                    db=db,
+            if xcfg.websocket_enabled:
+                sources.append(
+                    XWebSocketSource(
+                        api_key=settings_x_api_key,
+                        websocket_url=xcfg.websocket_url,
+                        ws_reconnect_min_seconds=xcfg.ws_reconnect_min_seconds,
+                        ws_max_consecutive_failures=xcfg.ws_max_consecutive_failures,
+                        db=db,
+                    )
                 )
-            )
             sources.append(
                 XPollingSource(
                     api_key=settings_x_api_key,
