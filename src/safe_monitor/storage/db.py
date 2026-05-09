@@ -192,7 +192,8 @@ class Database:
     async def list_x_users(self) -> list[dict[str, Any]]:
         assert self._conn is not None
         async with self._conn.execute(
-            "SELECT user_id, handle, tier, last_seen_id FROM x_users ORDER BY handle"
+            "SELECT user_id, handle, tier, last_seen_id, last_seen_at_unix "
+            "FROM x_users ORDER BY handle"
         ) as cur:
             rows = await cur.fetchall()
         return [dict(r) for r in rows]
@@ -202,6 +203,23 @@ class Database:
         await self._conn.execute(
             "UPDATE x_users SET last_seen_id=?, updated_at=? WHERE user_id=?",
             (last_seen_id, datetime.now(UTC).isoformat(), user_id),
+        )
+        await self._conn.commit()
+
+    async def set_x_user_last_seen_at(
+        self, user_id: str, last_seen_at_unix: int
+    ) -> None:
+        """Update only when the new timestamp advances (idempotent under retries)."""
+        assert self._conn is not None
+        await self._conn.execute(
+            "UPDATE x_users SET last_seen_at_unix=?, updated_at=? "
+            "WHERE user_id=? AND (last_seen_at_unix IS NULL OR last_seen_at_unix < ?)",
+            (
+                last_seen_at_unix,
+                datetime.now(UTC).isoformat(),
+                user_id,
+                last_seen_at_unix,
+            ),
         )
         await self._conn.commit()
 

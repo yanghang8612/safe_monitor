@@ -103,6 +103,7 @@ async def _build_sources(
             _sl.get_logger("main").warning("x.skipped_no_api_key")
         else:
             from safe_monitor.sources.x_polling import XPollingSource
+            from safe_monitor.sources.x_search_polling import XSearchPollingSource
             from safe_monitor.sources.x_websocket import XWebSocketSource
 
             if xcfg.websocket_enabled:
@@ -115,15 +116,27 @@ async def _build_sources(
                         db=db,
                     )
                 )
-            sources.append(
-                XPollingSource(
-                    api_key=settings_x_api_key,
-                    rest_base_url=xcfg.rest_base_url,
-                    poll_interval_seconds=xcfg.poll_interval_seconds,
-                    tweets_per_call=xcfg.poll_tweets_per_call,
-                    db=db,
+            if xcfg.poll_endpoint == "advanced_search":
+                sources.append(
+                    XSearchPollingSource(
+                        api_key=settings_x_api_key,
+                        rest_base_url=xcfg.rest_base_url,
+                        poll_interval_seconds=xcfg.poll_interval_seconds,
+                        query_budget=xcfg.poll_query_budget,
+                        max_pages_per_batch=xcfg.poll_max_pages_per_batch,
+                        db=db,
+                    )
                 )
-            )
+            else:
+                sources.append(
+                    XPollingSource(
+                        api_key=settings_x_api_key,
+                        rest_base_url=xcfg.rest_base_url,
+                        poll_interval_seconds=xcfg.poll_interval_seconds,
+                        tweets_per_call=xcfg.poll_tweets_per_call,
+                        db=db,
+                    )
+                )
     return sources
 
 

@@ -31,7 +31,14 @@ class XSourceCfg(BaseModel):
     websocket_url: str = "wss://ws.twitterapi.io/twitter/tweet/websocket"
     rest_base_url: str = "https://api.twitterapi.io"
     poll_interval_seconds: int = 600
+    # "advanced_search": batched OR queries via /twitter/tweet/advanced_search
+    # with since_time — empty cycles cost the 15-credit floor per batch.
+    # "last_tweets": legacy per-handle /twitter/user/last_tweets, kept as
+    # fallback. Set tweets_per_call only matters when poll_endpoint=last_tweets.
+    poll_endpoint: Literal["advanced_search", "last_tweets"] = "advanced_search"
     poll_tweets_per_call: int = 5
+    poll_query_budget: int = 500
+    poll_max_pages_per_batch: int = 5
     ws_reconnect_min_seconds: int = 90
     ws_max_consecutive_failures: int = 5
     degrade_recheck_seconds: int = 1800

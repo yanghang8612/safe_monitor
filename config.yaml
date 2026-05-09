@@ -39,9 +39,13 @@ sources:
     websocket_url: "wss://ws.twitterapi.io/twitter/tweet/websocket"
     rest_base_url: "https://api.twitterapi.io"
     poll_interval_seconds: 600
-    # TwitterAPI.io charges 15 credits per returned tweet (max 20/page).
-    # Most monitored handles post < 5 tweets per 10-min interval, so capping
-    # the page size at 5 cuts the per-call cost ~3.4x with no loss of coverage.
+    # advanced_search batches handles into OR queries with since_time, so an
+    # idle batch costs the 15-credit floor regardless of size — ~25× cheaper
+    # than per-handle last_tweets. Flip to "last_tweets" to fall back.
+    poll_endpoint: advanced_search
+    poll_query_budget: 500
+    poll_max_pages_per_batch: 5
+    # Only used when poll_endpoint=last_tweets.
     poll_tweets_per_call: 5
     ws_reconnect_min_seconds: 90
     ws_max_consecutive_failures: 5

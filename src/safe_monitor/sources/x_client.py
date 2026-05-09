@@ -113,6 +113,39 @@ class TwitterApiIoClient:
         uid = node.get("id") or node.get("id_str") or node.get("user_id")
         return str(uid) if uid else None
 
+    async def search_tweets(
+        self,
+        *,
+        query: str,
+        since_time_unix: int,
+        cursor: str | None = None,
+    ) -> dict[str, Any]:
+        """Wraps /twitter/tweet/advanced_search.
+
+        Pricing: 15 credits per returned tweet, 15 credits floor when empty —
+        so an idle handle's batch costs ~15 credits regardless of how many
+        handles share the OR query. Returns a dict with `tweets`,
+        `has_next_page`, `next_cursor` (string or empty)."""
+        params: dict[str, Any] = {
+            "query": query,
+            "queryType": "Latest",
+            "since_time": since_time_unix,
+        }
+        if cursor:
+            params["cursor"] = cursor
+        data = await self._get("/twitter/tweet/advanced_search", params)
+        tweets = data.get("tweets")
+        if not isinstance(tweets, list):
+            inner = data.get("data") if isinstance(data.get("data"), dict) else {}
+            tweets = inner.get("tweets") if isinstance(inner, dict) else []
+        if not isinstance(tweets, list):
+            tweets = []
+        return {
+            "tweets": tweets,
+            "has_next_page": bool(data.get("has_next_page")),
+            "next_cursor": str(data.get("next_cursor") or ""),
+        }
+
     async def get_last_tweets(
         self, *, user_id: str, since_id: str | None = None, limit: int = 20
     ) -> list[dict[str, Any]]:
