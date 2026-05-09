@@ -161,8 +161,8 @@ async def _amain(reset: bool, dry_run: bool) -> int:
         msg=(
             "Now reset the x_websocket degraded flag: "
             "sqlite3 data/safe_monitor.db "
-            "\"UPDATE source_health SET degraded=0, reason=NULL "
-            "WHERE source='x_websocket';\""
+            "\"UPDATE source_status SET degraded=0, reason=NULL, "
+            "changed_at=datetime('now') WHERE source='x_websocket';\""
         ),
     )
     return 0
