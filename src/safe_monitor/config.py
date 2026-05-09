@@ -76,6 +76,11 @@ class Settings(BaseSettings):
 
     x_api_key: str = Field("", alias="X_API_KEY")
 
+    # Optional translation: when OPENAI_API_KEY is set, non-Chinese alerts get
+    # translated to Simplified Chinese before being formatted into TG messages.
+    openai_api_key: str = Field("", alias="OPENAI_API_KEY")
+    openai_model: str = Field("gpt-4o-mini", alias="OPENAI_MODEL")
+
     db_path: str = Field("./data/safe_monitor.db", alias="SAFE_MONITOR_DB_PATH")
     log_level: str = Field("INFO", alias="LOG_LEVEL")
     config_path: str = Field("./config.yaml", alias="SAFE_MONITOR_CONFIG")

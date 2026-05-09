@@ -8,14 +8,22 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from safe_monitor.core.models import Event
 from safe_monitor.publishers.base import Publisher
 from safe_monitor.publishers.formatter import format_details, format_summary
+from safe_monitor.publishers.translator import Translator, is_mostly_chinese
 
 log = structlog.get_logger(__name__)
 
 
 class TelegramPublisher(Publisher):
-    def __init__(self, *, bot_token: str, chat_id: int):
+    def __init__(
+        self,
+        *,
+        bot_token: str,
+        chat_id: int,
+        translator: Translator | None = None,
+    ):
         self._bot = Bot(token=bot_token)
         self._chat_id = chat_id
+        self._translator = translator
 
     @retry(
         reraise=True,
@@ -33,13 +41,25 @@ class TelegramPublisher(Publisher):
             disable_web_page_preview=True,
         )
 
+    async def _maybe_translate(self, event: Event) -> Event:
+        if self._translator is None:
+            return event
+        # Cheap pre-check: if the original is already mostly Chinese, skip the API call.
+        joined = f"{event.title}\n{event.body or ''}"
+        if is_mostly_chinese(joined):
+            return event
+        title = await self._translator.translate(event.title)
+        body = await self._translator.translate(event.body) if event.body else event.body
+        return event.model_copy(update={"title": title, "body": body})
+
     async def publish(self, event: Event) -> bool:
         # Send summary and details as two separate messages so each gets its
         # own bubble (and on group chats, its own avatar+name header) — adjacent
         # alerts are easier to tell apart this way than a single long message.
         try:
-            await self._send(format_summary(event))
-            await self._send(format_details(event))
+            ev = await self._maybe_translate(event)
+            await self._send(format_summary(ev))
+            await self._send(format_details(ev))
             return True
         except TelegramError as e:
             log.error("telegram.publish_failed", error=str(e), fp=event.fingerprint)

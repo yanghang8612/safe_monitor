@@ -15,6 +15,7 @@ dependencies = [
   "pyyaml>=6",
   "tenacity>=8",
   "websockets>=12,<14",
+  "openai>=1.40",
 ]
 
 [project.optional-dependencies]

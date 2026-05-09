@@ -167,3 +167,20 @@ not fully documented; the implementation uses a best-effort `{"action":
 "subscribe", "rules": [{"follow": [user_id, ...]}]}` frame. If the server
 rejects it on first connection, fix `_build_subscription` in
 `src/safe_monitor/sources/x_websocket.py` (single point of fix).
+
+## Translation to Simplified Chinese (optional)
+
+When `OPENAI_API_KEY` is present, alerts whose original text is **not**
+already Chinese-dominant (≥30 % CJK letter ratio) get title and body
+translated to Simplified Chinese before being formatted for Telegram.
+
+1. Add to `.env` (do **not** commit):
+   ```
+   OPENAI_API_KEY=sk-...
+   OPENAI_MODEL=gpt-4o-mini   # optional override; default is gpt-4o-mini
+   ```
+2. Restart `safe_monitor`. Look for `translator.enabled model=...` at boot.
+
+**Cost guard.** Translation calls run with an 8 s timeout and fall back to
+the original text on any OpenAI error — translation can never block alert
+delivery. Estimate: ~$0.0002 per non-Chinese alert with `gpt-4o-mini`.

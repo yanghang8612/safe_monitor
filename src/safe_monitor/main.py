@@ -133,9 +133,20 @@ async def _amain() -> None:
     db = Database(settings.db_path)
     await db.init()
 
+    translator = None
+    if settings.openai_api_key:
+        from safe_monitor.publishers.translator import OpenAITranslator
+
+        translator = OpenAITranslator(
+            api_key=settings.openai_api_key,
+            model=settings.openai_model,
+        )
+        log.info("translator.enabled", model=settings.openai_model)
+
     publisher = TelegramPublisher(
         bot_token=settings.tg_bot_token,
         chat_id=settings.tg_target_chat_id,
+        translator=translator,
     )
 
     from safe_monitor.core.scheduler import build_scheduler
