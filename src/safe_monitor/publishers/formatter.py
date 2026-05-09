@@ -18,21 +18,21 @@ def _fmt_usd(v: float | None) -> str | None:
     return f"${int(v):,} USD"
 
 
-_DIVIDER = "━━━━━━━━━━━━━━━━━━"
+def _truncate(text: str) -> str:
+    if len(text) <= _MAX_LEN:
+        return text
+    return text[: _MAX_LEN - 3] + "..."
 
 
-def format_event(e: Event) -> str:
-    lines: list[str] = []
-    # Leading divider so adjacent TG messages have a clear visual boundary;
-    # without it, each alert flows directly into the next on the client.
-    lines.append(_DIVIDER)
-    lines.append("🚨 摘要 SUMMARY")
-    lines.append(e.title)
+def format_summary(e: Event) -> str:
+    lines: list[str] = ["🚨 摘要 SUMMARY", e.title]
     if e.body:
         lines.append(e.body)
+    return _truncate("\n".join(lines))
 
-    lines.append("")
-    lines.append("📋 详情 DETAILS")
+
+def format_details(e: Event) -> str:
+    lines: list[str] = ["📋 详情 DETAILS"]
 
     def row(label_cn: str, label_en: str, value: str | None):
         if value:
@@ -46,8 +46,9 @@ def format_event(e: Event) -> str:
     row("链接", "Link", e.url)
     row("严重度", "Severity", _SEV_EMOJI.get(e.severity))
     row("时间", "Timestamp", e.received_at.strftime("%Y-%m-%d %H:%M:%S UTC"))
+    return _truncate("\n".join(lines))
 
-    text = "\n".join(lines)
-    if len(text) > _MAX_LEN:
-        text = text[: _MAX_LEN - 3] + "..."
-    return text
+
+def format_event(e: Event) -> str:
+    """Combined single-message format. Kept for tests / non-TG publishers."""
+    return _truncate(format_summary(e) + "\n\n" + format_details(e))

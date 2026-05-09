@@ -7,7 +7,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 from safe_monitor.core.models import Event
 from safe_monitor.publishers.base import Publisher
-from safe_monitor.publishers.formatter import format_event
+from safe_monitor.publishers.formatter import format_details, format_summary
 
 log = structlog.get_logger(__name__)
 
@@ -34,9 +34,12 @@ class TelegramPublisher(Publisher):
         )
 
     async def publish(self, event: Event) -> bool:
-        text = format_event(event)
+        # Send summary and details as two separate messages so each gets its
+        # own bubble (and on group chats, its own avatar+name header) — adjacent
+        # alerts are easier to tell apart this way than a single long message.
         try:
-            await self._send(text)
+            await self._send(format_summary(event))
+            await self._send(format_details(event))
             return True
         except TelegramError as e:
             log.error("telegram.publish_failed", error=str(e), fp=event.fingerprint)

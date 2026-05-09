@@ -38,10 +38,17 @@ def test_formatter_omits_missing_fields():
     assert "Chain" not in txt
 
 
-def test_formatter_starts_with_divider():
-    # Visual separator so adjacent TG messages don't blend together.
-    txt = format_event(_ev())
-    assert txt.splitlines()[0].startswith("━")
+def test_summary_and_details_split_cleanly():
+    from safe_monitor.publishers.formatter import format_details, format_summary
+
+    e = _ev()
+    summary = format_summary(e)
+    details = format_details(e)
+    # Summary holds title/body; details holds the labelled rows.
+    assert "SUMMARY" in summary and "DETAILS" not in summary
+    assert "DETAILS" in details and "SUMMARY" not in details
+    assert e.title in summary
+    assert "Chain" in details and "Tx hash" in details
 
 
 def test_formatter_truncates_long_body():
