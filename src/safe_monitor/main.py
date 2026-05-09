@@ -120,6 +120,7 @@ async def _build_sources(
                     api_key=settings_x_api_key,
                     rest_base_url=xcfg.rest_base_url,
                     poll_interval_seconds=xcfg.poll_interval_seconds,
+                    tweets_per_call=xcfg.poll_tweets_per_call,
                     db=db,
                 )
             )

@@ -25,10 +25,12 @@ class XPollingSource(Source):
         rest_base_url: str,
         poll_interval_seconds: int,
         db: Database,
+        tweets_per_call: int = 5,
     ):
         self._api_key = api_key
         self._base = rest_base_url
         self._interval = poll_interval_seconds
+        self._tweets_per_call = tweets_per_call
         self._db = db
         self._client = TwitterApiIoClient(api_key=api_key, base_url=rest_base_url)
 
@@ -40,7 +42,9 @@ class XPollingSource(Source):
         for u in users:
             try:
                 tweets = await self._client.get_last_tweets(
-                    user_id=u["user_id"], since_id=u["last_seen_id"]
+                    user_id=u["user_id"],
+                    since_id=u["last_seen_id"],
+                    limit=self._tweets_per_call,
                 )
             except TwitterApiIoClient.CreditsExhausted as e:
                 await self._db.set_degraded(self.name, True, reason=f"402: {e}")

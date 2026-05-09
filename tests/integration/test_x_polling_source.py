@@ -26,13 +26,13 @@ async def test_polls_each_user_emits_only_new_tweets(tmp_path: Path):
 
     with respx.mock(assert_all_called=True) as mock:
         mock.get("https://api.twitterapi.io/twitter/user/last_tweets",
-                 params={"userId": "111", "limit": 20}).mock(
+                 params={"userId": "111", "limit": 5}).mock(
             return_value=Response(200, json={"tweets": [
                 {"id_str": "1001", "text": "samczsun first", "user": {"id_str": "111", "screen_name": "samczsun"}},
             ]})
         )
         mock.get("https://api.twitterapi.io/twitter/user/last_tweets",
-                 params={"userId": "222", "limit": 20}).mock(
+                 params={"userId": "222", "limit": 5}).mock(
             return_value=Response(200, json={"tweets": [
                 {"id_str": "2001", "text": "wu first", "user": {"id_str": "222", "screen_name": "WuBlockchain"}},
             ]})
@@ -52,13 +52,13 @@ async def test_polls_each_user_emits_only_new_tweets(tmp_path: Path):
     # Re-poll with same response → no new emissions
     with respx.mock(assert_all_called=True) as mock:
         mock.get("https://api.twitterapi.io/twitter/user/last_tweets",
-                 params={"userId": "111", "limit": 20}).mock(
+                 params={"userId": "111", "limit": 5}).mock(
             return_value=Response(200, json={"tweets": [
                 {"id_str": "1001", "text": "same", "user": {"id_str": "111", "screen_name": "samczsun"}},
             ]})
         )
         mock.get("https://api.twitterapi.io/twitter/user/last_tweets",
-                 params={"userId": "222", "limit": 20}).mock(
+                 params={"userId": "222", "limit": 5}).mock(
             return_value=Response(200, json={"tweets": [
                 {"id_str": "2001", "text": "same", "user": {"id_str": "222", "screen_name": "WuBlockchain"}},
             ]})
@@ -103,7 +103,7 @@ async def test_402_marks_degraded(tmp_path: Path):
     q: asyncio.Queue = asyncio.Queue()
     with respx.mock(assert_all_called=True) as mock:
         mock.get("https://api.twitterapi.io/twitter/user/last_tweets",
-                 params={"userId": "111", "limit": 20}).mock(
+                 params={"userId": "111", "limit": 5}).mock(
             return_value=Response(402, text="no credits")
         )
         await src.poll_once(q)
