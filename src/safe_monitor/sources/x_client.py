@@ -44,6 +44,66 @@ class TwitterApiIoClient:
         r.raise_for_status()
         return r.json()
 
+    async def _request_json(
+        self, method: str, path: str, body: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        url = f"{self._base}{path}"
+        headers = {**self._headers(), "content-type": "application/json"}
+        async with httpx.AsyncClient(timeout=self._timeout) as c:
+            r = await c.request(method, url, headers=headers, json=body)
+        if r.status_code == 402:
+            raise self.CreditsExhausted(r.text[:300])
+        if r.status_code == 429:
+            raise self.TransientError(f"429 rate limited: {r.text[:200]}")
+        if r.status_code >= 500:
+            raise self.TransientError(f"{r.status_code}: {r.text[:200]}")
+        r.raise_for_status()
+        return r.json()
+
+    async def list_filter_rules(self) -> list[dict[str, Any]]:
+        data = await self._get("/oapi/tweet_filter/get_rules", {})
+        rules = data.get("rules")
+        return list(rules) if isinstance(rules, list) else []
+
+    async def add_filter_rule(
+        self, *, tag: str, value: str, interval_seconds: int = 60
+    ) -> str:
+        resp = await self._request_json(
+            "POST",
+            "/oapi/tweet_filter/add_rule",
+            {"tag": tag, "value": value, "interval_seconds": interval_seconds},
+        )
+        rid = resp.get("rule_id") or (resp.get("data") or {}).get("rule_id")
+        if not rid:
+            raise self.TransientError(f"add_rule: missing rule_id in response: {resp}")
+        return str(rid)
+
+    async def update_filter_rule(
+        self,
+        *,
+        rule_id: str,
+        tag: str,
+        value: str,
+        interval_seconds: int,
+        is_effect: int,
+    ) -> None:
+        await self._request_json(
+            "POST",
+            "/oapi/tweet_filter/update_rule",
+            {
+                "rule_id": rule_id,
+                "tag": tag,
+                "value": value,
+                "interval_seconds": interval_seconds,
+                "is_effect": is_effect,
+            },
+        )
+
+    async def delete_filter_rule(self, rule_id: str) -> None:
+        await self._request_json(
+            "DELETE", "/oapi/tweet_filter/delete_rule", {"rule_id": rule_id}
+        )
+
     async def resolve_handle(self, handle: str) -> str | None:
         """Return user_id for a screen_name, or None if not found."""
         data = await self._get("/twitter/user/info", {"userName": handle})
