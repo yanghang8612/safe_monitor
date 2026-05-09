@@ -115,17 +115,23 @@ async def _check_credits(api_key: str, base_url: str) -> bool:
 
 
 async def x_recovery_probe(db: Database, *, api_key: str, base_url: str) -> None:
-    """If x_websocket OR x_polling is degraded, run a cheap REST call.
-    On success, clear both flags so the next loop iteration of each source
-    can resume."""
-    if not (await db.is_degraded("x_websocket") or await db.is_degraded("x_polling")):
+    """REST-credits probe — only clears x_polling.
+
+    The cheap REST call (resolve_handle) verifies the API key still has REST
+    credits, which is sufficient for x_polling to resume. It says nothing
+    about WebSocket reachability — the WS endpoint can 403 (account/plan/
+    rules) while REST is healthy, so clearing x_websocket here causes a
+    false-recovery loop. x_websocket must be cleared manually (or by a
+    targeted bootstrap) once its specific failure mode is fixed.
+    """
+    polling_degraded = await db.is_degraded("x_polling")
+    if not polling_degraded:
         return
     if not api_key:
         return
     if await _check_credits(api_key, base_url):
-        await db.set_degraded("x_websocket", False)
         await db.set_degraded("x_polling", False)
-        log.info("x_recovery.cleared")
+        log.info("x_recovery.cleared", source="x_polling")
 
 
 def build_scheduler(
