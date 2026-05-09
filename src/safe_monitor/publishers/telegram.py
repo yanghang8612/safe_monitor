@@ -7,7 +7,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 from safe_monitor.core.models import Event
 from safe_monitor.publishers.base import Publisher
-from safe_monitor.publishers.formatter import format_details, format_summary
+from safe_monitor.publishers.formatter import format_event
 from safe_monitor.publishers.translator import Translator, is_mostly_chinese
 
 log = structlog.get_logger(__name__)
@@ -53,13 +53,12 @@ class TelegramPublisher(Publisher):
         return event.model_copy(update={"title": title, "body": body})
 
     async def publish(self, event: Event) -> bool:
-        # Send summary and details as two separate messages so each gets its
-        # own bubble (and on group chats, its own avatar+name header) — adjacent
-        # alerts are easier to tell apart this way than a single long message.
+        # One alert = one message. In channel mode this becomes one card per
+        # alert (with channel header); in private chat mode TG groups them
+        # without per-message headers regardless of how we split.
         try:
             ev = await self._maybe_translate(event)
-            await self._send(format_summary(ev))
-            await self._send(format_details(ev))
+            await self._send(format_event(ev))
             return True
         except TelegramError as e:
             log.error("telegram.publish_failed", error=str(e), fp=event.fingerprint)

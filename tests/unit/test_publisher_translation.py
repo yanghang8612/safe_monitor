@@ -34,7 +34,7 @@ async def test_publisher_skips_translation_for_chinese_event():
     await pub.publish(_ev(title="PeckShield 警报：Resolv 协议被攻击 $80M", body="跨链桥被利用"))
 
     translator.translate.assert_not_called()
-    assert pub._send.call_count == 2  # summary + details
+    assert pub._send.call_count == 1  # one combined message per alert
 
 
 @pytest.mark.asyncio
@@ -48,8 +48,9 @@ async def test_publisher_translates_english_event():
     await pub.publish(_ev(title="Resolv protocol exploited for $80M", body="Bridge drained"))
 
     assert translator.translate.await_count == 2  # title + body
-    summary_text = pub._send.call_args_list[0].args[0]
-    assert "ZH-Resolv protocol exploited for $80M" in summary_text
+    sent = pub._send.call_args_list[0].args[0]
+    assert "ZH-Resolv protocol exploited for $80M" in sent
+    assert "ZH-Bridge drained" in sent
 
 
 @pytest.mark.asyncio
@@ -58,4 +59,4 @@ async def test_publisher_works_without_translator():
     pub._send = AsyncMock()
 
     await pub.publish(_ev(title="anything", body="anything"))
-    assert pub._send.call_count == 2
+    assert pub._send.call_count == 1
