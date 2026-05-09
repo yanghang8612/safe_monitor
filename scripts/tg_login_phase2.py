@@ -1,6 +1,7 @@
 """Phase 2: submit the login code received in Telegram.
 
-Reads phone_code_hash from /tmp/tg_code_hash.txt (written by phase 1).
+Reads phone_code_hash from data/.tg_code_hash (written by phase 1; persisted
+inside the data/ volume so it survives between `docker compose run --rm` invocations).
 Usage: TG_LOGIN_CODE=12345 python scripts/tg_login_phase2.py
 """
 
@@ -10,6 +11,8 @@ import sys
 
 from telethon import TelegramClient
 from telethon.errors import SessionPasswordNeededError
+
+_HASH_FILE = "/app/data/.tg_code_hash" if os.path.isdir("/app/data") else "./data/.tg_code_hash"
 
 
 async def main() -> None:
@@ -23,7 +26,7 @@ async def main() -> None:
         print("ERROR: pass code via TG_LOGIN_CODE env var or argv[1]")
         sys.exit(1)
 
-    with open("/tmp/tg_code_hash.txt") as f:
+    with open(_HASH_FILE) as f:
         phone_code_hash = f.read().strip()
 
     client = TelegramClient(session, api_id, api_hash)
