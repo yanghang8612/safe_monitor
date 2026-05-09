@@ -122,14 +122,16 @@ class TwitterApiIoClient:
     ) -> dict[str, Any]:
         """Wraps /twitter/tweet/advanced_search.
 
-        Pricing: 15 credits per returned tweet, 15 credits floor when empty —
-        so an idle handle's batch costs ~15 credits regardless of how many
-        handles share the OR query. Returns a dict with `tweets`,
-        `has_next_page`, `next_cursor` (string or empty)."""
+        TwitterAPI.io expects since_time / until_time *inside* the query
+        string, not as separate URL parameters — sending them as URL params
+        is silently ignored, returning the full historical timeline.
+
+        Pricing: 15 credits per returned tweet, 15 credits floor when empty.
+        Returns a dict with `tweets`, `has_next_page`, `next_cursor`."""
+        full_query = f"({query}) since_time:{since_time_unix}"
         params: dict[str, Any] = {
-            "query": query,
+            "query": full_query,
             "queryType": "Latest",
-            "since_time": since_time_unix,
         }
         if cursor:
             params["cursor"] = cursor
