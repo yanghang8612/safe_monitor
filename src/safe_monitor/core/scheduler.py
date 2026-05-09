@@ -101,7 +101,42 @@ async def retry_failed_events_job(db: Database, publisher: Publisher) -> int:
     return retried
 
 
-def build_scheduler(db: Database, ttl_days: int, publisher: Publisher) -> AsyncIOScheduler:
+async def _check_credits(api_key: str, base_url: str) -> bool:
+    """Best-effort: a cheap GET that costs ~$0.00015 — succeeds = creds OK."""
+    from safe_monitor.sources.x_client import TwitterApiIoClient
+    client = TwitterApiIoClient(api_key=api_key, base_url=base_url)
+    try:
+        await client.resolve_handle("twitter")  # well-known, always exists
+        return True
+    except TwitterApiIoClient.CreditsExhausted:
+        return False
+    except Exception:
+        return False
+
+
+async def x_recovery_probe(db: Database, *, api_key: str, base_url: str) -> None:
+    """If x_websocket OR x_polling is degraded, run a cheap REST call.
+    On success, clear both flags so the next loop iteration of each source
+    can resume."""
+    if not (await db.is_degraded("x_websocket") or await db.is_degraded("x_polling")):
+        return
+    if not api_key:
+        return
+    if await _check_credits(api_key, base_url):
+        await db.set_degraded("x_websocket", False)
+        await db.set_degraded("x_polling", False)
+        log.info("x_recovery.cleared")
+
+
+def build_scheduler(
+    db: Database,
+    ttl_days: int,
+    publisher: Publisher,
+    *,
+    x_api_key: str = "",
+    x_rest_base_url: str = "https://api.twitterapi.io",
+    x_recheck_seconds: int = 1800,
+) -> AsyncIOScheduler:
     scheduler = AsyncIOScheduler(timezone="UTC")
     scheduler.add_job(
         prune_fingerprints_job,
@@ -120,4 +155,13 @@ def build_scheduler(db: Database, ttl_days: int, publisher: Publisher) -> AsyncI
         id="retry_failed_events",
         replace_existing=True,
     )
+    if x_api_key:
+        scheduler.add_job(
+            x_recovery_probe,
+            trigger="interval",
+            seconds=x_recheck_seconds,
+            kwargs={"db": db, "api_key": x_api_key, "base_url": x_rest_base_url},
+            id="x_recovery_probe",
+            replace_existing=True,
+        )
     return scheduler

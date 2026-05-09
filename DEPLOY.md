@@ -134,3 +134,36 @@ tar czf safe_monitor_data_$(date +%F).tgz data/
 
 - `SlowMist_Team` 和 `wublockchain` 两个频道的真实用户名待查；目前在 `config.yaml` 里被注释。
 - DefiLlama hacks API 需要付费（402），已禁用。后续可补 Rekt.news RSS 或 DeFiYield API 替代源。
+
+## X (Twitter) ingestion (TwitterAPI.io)
+
+1. Sign up at https://twitterapi.io/ and top up at least $5 of credits.
+2. Add to `.env` (do **not** commit):
+   ```
+   X_API_KEY=...
+   ```
+3. Bootstrap the user list (idempotent, safe to re-run):
+   ```
+   uv run python scripts/resolve_x_handles.py
+   ```
+4. Verify the table is populated:
+   ```
+   sqlite3 data/safe_monitor.db 'SELECT COUNT(*) FROM x_users;'   # expect ~47
+   ```
+5. Re-run `safe_monitor` — you should see `x_websocket` and `x_polling` in
+   the source list at startup.
+
+**Degrade behaviour.** If TwitterAPI.io returns `402` (no credits) or the
+WebSocket fails to reconnect 5× in a row, the X sources self-disable; the
+rest of the pipeline (TG mirrors, RSS, Forta, OFAC) keeps running. The
+scheduler probes for recovery every 30 min and re-enables automatically.
+
+**Editing the whitelist.** Add/remove rows under `sources.x.handles` in
+`config.yaml`, then re-run `scripts/resolve_x_handles.py`. To force-refresh
+an already-resolved handle (e.g. account renamed), pass `--force`.
+
+**WebSocket caveat.** TwitterAPI.io's WebSocket subscription wire format is
+not fully documented; the implementation uses a best-effort `{"action":
+"subscribe", "rules": [{"follow": [user_id, ...]}]}` frame. If the server
+rejects it on first connection, fix `_build_subscription` in
+`src/safe_monitor/sources/x_websocket.py` (single point of fix).

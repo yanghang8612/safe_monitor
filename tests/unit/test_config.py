@@ -68,3 +68,27 @@ sources:
     assert s.tg_api_hash == ""
     assert s.tg_userbot_phone == ""
     assert s.config.sources.telegram[0].poll_interval_seconds == 90
+
+
+def test_x_config_loads_handles_with_tiers(tmp_path):
+    from safe_monitor.config import ConfigYaml
+    import yaml
+    raw = yaml.safe_load("""
+sources:
+  api: []
+  telegram: []
+  x:
+    enabled: true
+    websocket_url: "wss://ws.twitterapi.io/twitter/tweet/websocket"
+    rest_base_url: "https://api.twitterapi.io"
+    poll_interval_seconds: 600
+    handles:
+      - {handle: samczsun, tier: S}
+      - {handle: PeckShieldAlert, tier: A}
+      - {handle: WuBlockchain, tier: D}
+""")
+    cfg = ConfigYaml(**raw)
+    assert cfg.sources.x is not None
+    assert cfg.sources.x.enabled is True
+    assert len(cfg.sources.x.handles) == 3
+    assert cfg.sources.x.handles[0].tier == "S"

@@ -1,0 +1,12 @@
+{
+  "event_type": "fast_tweet",
+  "timestamp": 1746694117000,
+  "snow_delay_ms": 420,
+  "tweet": {
+    "id_str": "1789012345678901234",
+    "text": "EXPLOIT in progress on protocol X — drained ~$12M, attacker addr 0xabc...",
+    "created_at": "Thu May 08 13:28:37 +0000 2026",
+    "user": {"id_str": "12345", "screen_name": "samczsun", "name": "samczsun"},
+    "entities": {"urls": [{"expanded_url": "https://x.com/samczsun/status/1789012345678901234"}]}
+  }
+}

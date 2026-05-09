@@ -38,6 +38,12 @@ def test_formatter_omits_missing_fields():
     assert "Chain" not in txt
 
 
+def test_formatter_starts_with_divider():
+    # Visual separator so adjacent TG messages don't blend together.
+    txt = format_event(_ev())
+    assert txt.splitlines()[0].startswith("━")
+
+
 def test_formatter_truncates_long_body():
     long = "a" * 8000
     e = _ev().model_copy(update={"body": long})

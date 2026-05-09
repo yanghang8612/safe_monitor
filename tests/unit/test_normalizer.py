@@ -126,3 +126,24 @@ def test_fingerprint_stable_same_day():
     b = Normalizer().normalize(r)
     assert a.fingerprint == b.fingerprint
     assert re.fullmatch(r"[0-9a-f]{64}", a.fingerprint)
+
+
+def test_normalizer_routes_x_source_kind_to_x_parser():
+    raw = RawEvent(
+        source="x_websocket",
+        source_kind="x",
+        external_id="1789012345678901234",
+        received_at=datetime.now(UTC),
+        raw={
+            "id_str": "1789012345678901234",
+            "text": "EXPLOIT on Foo: $5M drained",
+            "user": {"id_str": "1", "screen_name": "samczsun"},
+            "_tier": "S",
+        },
+        text="EXPLOIT on Foo: $5M drained",
+    )
+    ev = Normalizer().normalize(raw)
+    assert ev is not None
+    assert ev.severity == Severity.high
+    assert ev.url == "https://x.com/samczsun/status/1789012345678901234"
+    assert "a" in [c.value if hasattr(c, "value") else c for c in ev.category]

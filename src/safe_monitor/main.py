@@ -30,6 +30,7 @@ async def _build_sources(
     settings_phone: str,
     settings_tg_mode: str,
     settings_rsshub_base: str,
+    settings_x_api_key: str,
 ) -> list[Source]:
     sources: list[Source] = []
     for api in cfg.sources.api:
@@ -95,6 +96,32 @@ async def _build_sources(
                     db=db,
                 )
             )
+    xcfg = cfg.sources.x
+    if xcfg and xcfg.enabled:
+        if not settings_x_api_key:
+            import structlog as _sl
+            _sl.get_logger("main").warning("x.skipped_no_api_key")
+        else:
+            from safe_monitor.sources.x_polling import XPollingSource
+            from safe_monitor.sources.x_websocket import XWebSocketSource
+
+            sources.append(
+                XWebSocketSource(
+                    api_key=settings_x_api_key,
+                    websocket_url=xcfg.websocket_url,
+                    ws_reconnect_min_seconds=xcfg.ws_reconnect_min_seconds,
+                    ws_max_consecutive_failures=xcfg.ws_max_consecutive_failures,
+                    db=db,
+                )
+            )
+            sources.append(
+                XPollingSource(
+                    api_key=settings_x_api_key,
+                    rest_base_url=xcfg.rest_base_url,
+                    poll_interval_seconds=xcfg.poll_interval_seconds,
+                    db=db,
+                )
+            )
     return sources
 
 
@@ -113,7 +140,16 @@ async def _amain() -> None:
 
     from safe_monitor.core.scheduler import build_scheduler
 
-    scheduler = build_scheduler(db, ttl_days=settings.config.dedup.ttl_days, publisher=publisher)
+    xcfg = settings.config.sources.x
+    x_active = bool(xcfg and xcfg.enabled and settings.x_api_key)
+    scheduler = build_scheduler(
+        db,
+        ttl_days=settings.config.dedup.ttl_days,
+        publisher=publisher,
+        x_api_key=settings.x_api_key if x_active else "",
+        x_rest_base_url=xcfg.rest_base_url if xcfg else "https://api.twitterapi.io",
+        x_recheck_seconds=xcfg.degrade_recheck_seconds if xcfg else 1800,
+    )
     scheduler.start()
 
     sources = await _build_sources(
@@ -125,6 +161,7 @@ async def _amain() -> None:
         settings_phone=settings.tg_userbot_phone,
         settings_tg_mode=settings.tg_ingest_mode,
         settings_rsshub_base=settings.rsshub_base_url,
+        settings_x_api_key=settings.x_api_key,
     )
     filter_ = Filter(settings.config.filter)
 

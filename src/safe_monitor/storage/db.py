@@ -176,3 +176,51 @@ class Database:
         ) as cur:
             row = await cur.fetchone()
         return dict(row) if row else None
+
+    async def upsert_x_user(self, *, handle: str, user_id: str, tier: str) -> None:
+        assert self._conn is not None
+        await self._conn.execute(
+            """INSERT INTO x_users(user_id, handle, tier, updated_at)
+               VALUES(?,?,?,?)
+               ON CONFLICT(user_id) DO UPDATE SET
+                 handle=excluded.handle, tier=excluded.tier,
+                 updated_at=excluded.updated_at""",
+            (user_id, handle, tier, datetime.now(UTC).isoformat()),
+        )
+        await self._conn.commit()
+
+    async def list_x_users(self) -> list[dict[str, Any]]:
+        assert self._conn is not None
+        async with self._conn.execute(
+            "SELECT user_id, handle, tier, last_seen_id FROM x_users ORDER BY handle"
+        ) as cur:
+            rows = await cur.fetchall()
+        return [dict(r) for r in rows]
+
+    async def set_x_user_last_seen(self, user_id: str, last_seen_id: str) -> None:
+        assert self._conn is not None
+        await self._conn.execute(
+            "UPDATE x_users SET last_seen_id=?, updated_at=? WHERE user_id=?",
+            (last_seen_id, datetime.now(UTC).isoformat(), user_id),
+        )
+        await self._conn.commit()
+
+    async def set_degraded(self, source: str, degraded: bool, reason: str | None = None) -> None:
+        assert self._conn is not None
+        await self._conn.execute(
+            """INSERT INTO source_status(source, degraded, reason, changed_at)
+               VALUES(?,?,?,?)
+               ON CONFLICT(source) DO UPDATE SET
+                 degraded=excluded.degraded, reason=excluded.reason,
+                 changed_at=excluded.changed_at""",
+            (source, 1 if degraded else 0, reason, datetime.now(UTC).isoformat()),
+        )
+        await self._conn.commit()
+
+    async def is_degraded(self, source: str) -> bool:
+        assert self._conn is not None
+        async with self._conn.execute(
+            "SELECT degraded FROM source_status WHERE source=?", (source,)
+        ) as cur:
+            row = await cur.fetchone()
+        return bool(row and row[0])

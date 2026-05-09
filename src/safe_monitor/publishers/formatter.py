@@ -18,8 +18,14 @@ def _fmt_usd(v: float | None) -> str | None:
     return f"${int(v):,} USD"
 
 
+_DIVIDER = "━━━━━━━━━━━━━━━━━━"
+
+
 def format_event(e: Event) -> str:
     lines: list[str] = []
+    # Leading divider so adjacent TG messages have a clear visual boundary;
+    # without it, each alert flows directly into the next on the client.
+    lines.append(_DIVIDER)
     lines.append("🚨 摘要 SUMMARY")
     lines.append(e.title)
     if e.body:

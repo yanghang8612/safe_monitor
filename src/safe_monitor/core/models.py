@@ -31,7 +31,7 @@ class RawEvent(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     source: str
-    source_kind: Literal["tg", "api"]
+    source_kind: Literal["tg", "api", "x"]
     external_id: str
     received_at: datetime
     raw: dict[str, Any]

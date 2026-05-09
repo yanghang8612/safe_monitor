@@ -1,0 +1,10 @@
+{
+  "tweets": [
+    {
+      "id_str": "1789012345678901111",
+      "text": "@PeckShieldAlert reports flashloan attack on Y, ~$3M loss.",
+      "created_at": "Thu May 08 12:10:00 +0000 2026",
+      "user": {"id_str": "67890", "screen_name": "PeckShieldAlert", "name": "PeckShield Alert"}
+    }
+  ]
+}

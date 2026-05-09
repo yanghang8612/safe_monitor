@@ -14,6 +14,7 @@ dependencies = [
   "aiosqlite>=0.20",
   "pyyaml>=6",
   "tenacity>=8",
+  "websockets>=12,<14",
 ]
 
 [project.optional-dependencies]

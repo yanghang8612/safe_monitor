@@ -39,6 +39,11 @@ class Normalizer:
                 parsed = parse_whale_alert(text)
             else:
                 parsed = parse_generic_tg(text)
+        elif raw.source_kind == "x":
+            from safe_monitor.core.parsers.x_tweet import parse_x_tweet
+
+            tier = raw.raw.get("_tier") or "E"
+            parsed = parse_x_tweet(raw.raw, tier=tier)
         else:
             return None
 
@@ -52,7 +57,8 @@ class Normalizer:
         # try to keyword-match their bot-generated descriptions.
         sev = parsed.get("severity") or score_severity(f"{title} {body or ''}", loss_usd)
 
-        fp = compute_fp(raw.source, title, raw.received_at)
+        fp_source = "x" if raw.source_kind == "x" else raw.source
+        fp = compute_fp(fp_source, title, raw.received_at)
 
         return Event(
             fingerprint=fp,

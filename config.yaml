@@ -59,6 +59,75 @@ sources:
     #   username: "wublockchain"
     #   poll_interval_seconds: 120
 
+  x:
+    enabled: true
+    websocket_url: "wss://ws.twitterapi.io/twitter/tweet/websocket"
+    rest_base_url: "https://api.twitterapi.io"
+    poll_interval_seconds: 600
+    ws_reconnect_min_seconds: 90
+    ws_max_consecutive_failures: 5
+    degrade_recheck_seconds: 1800
+    # Tier S: lone researchers (force severity>=high)
+    # Tier A: institutional alert handles (force severity>=high)
+    # Tier B: on-chain intel (default medium, keyword can promote)
+    # Tier C: English media
+    # Tier D: Chinese-circle media
+    # Tier E: optional/experimental
+    handles:
+      # --- Tier S: 15 individual researchers ---
+      - {handle: samczsun,        tier: S}
+      - {handle: zachxbt,         tier: S}
+      - {handle: pcaversaccio,    tier: S}
+      - {handle: tayvano_,        tier: S}
+      # officer_cia: handle no longer resolves (suspended/renamed); revisit later
+      # - {handle: officer_cia,     tier: S}
+      - {handle: evilcos,         tier: S}
+      - {handle: Mudit__Gupta,    tier: S}
+      - {handle: frangio_,        tier: S}
+      - {handle: PatrickAlphaC,   tier: S}
+      - {handle: pashov,          tier: S}  # was pashovkrum
+      - {handle: FrankResearcher, tier: S}
+      - {handle: 0xfoobar,        tier: S}
+      - {handle: 0xQuit,          tier: S}
+      - {handle: DanielVF,        tier: S}
+      - {handle: patrickd_,       tier: S}
+      # --- Tier A: 15 institutional alert handles ---
+      - {handle: PeckShieldAlert, tier: A}
+      - {handle: SlowMist_Team,   tier: A}
+      - {handle: CertiKAlert,     tier: A}
+      - {handle: Cyvers_,         tier: A}
+      - {handle: BlockSecTeam,    tier: A}
+      - {handle: HypernativeLabs, tier: A}  # was Hypernative
+      - {handle: BeosinAlert,     tier: A}
+      - {handle: realScamSniffer, tier: A}
+      - {handle: GoPlusSecurity,  tier: A}
+      - {handle: dedaub,          tier: A}
+      - {handle: FortaNetwork,    tier: A}
+      - {handle: _SEAL_Org,       tier: A}
+      - {handle: Hexens,          tier: A}  # was hexensio
+      - {handle: OtterSec,        tier: A}
+      - {handle: NumenCyber,      tier: A}
+      # --- Tier B: 5 on-chain intel ---
+      - {handle: whale_alert,     tier: B}
+      - {handle: ArkhamIntel,     tier: B}
+      - {handle: lookonchain,     tier: B}
+      - {handle: spotonchain,     tier: B}
+      - {handle: nansen_ai,       tier: B}
+      # --- Tier C: 5 English media ---
+      - {handle: TheBlock_,       tier: C}  # was TheBlock__
+      - {handle: DLNews,          tier: C}  # was DLNewsInfo
+      - {handle: CoinDesk,        tier: C}
+      - {handle: decryptmedia,    tier: C}
+      - {handle: Bankless,        tier: C}  # was BanklessHQ
+      # --- Tier D: 7 Chinese-circle ---
+      - {handle: WuBlockchain,    tier: D}
+      - {handle: ForesightNews,   tier: D}
+      - {handle: PANews,          tier: D}  # was PANewsCN
+      - {handle: ChainCatcher_,   tier: D}
+      - {handle: OdailyChina,     tier: D}
+      - {handle: BlockBeats,      tier: D}  # was theblockbeats
+      - {handle: hackenclub,      tier: D}
+
 filter:
   min_severity: medium
   deny_keywords:
