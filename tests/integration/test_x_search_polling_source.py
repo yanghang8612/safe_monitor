@@ -192,6 +192,152 @@ async def test_repoll_skips_already_seen_tweet(tmp_path: Path):
 
 
 @pytest.mark.asyncio
+async def test_reply_tweet_attaches_parent_context(tmp_path: Path):
+    # When the search returns a reply, the source must fetch the parent via
+    # /twitter/tweets and embed it on the payload so the parser can render
+    # the context. Two replies to the *same* parent should hit the parent
+    # endpoint exactly once (per-poll cache).
+    db = Database(tmp_path / "x.db")
+    await db.init()
+    await db.upsert_x_user(handle="zachxbt", user_id="111", tier="S")
+    await db.upsert_x_user(handle="samczsun", user_id="222", tier="S")
+
+    src = _make_source(db)
+    q: asyncio.Queue = asyncio.Queue()
+
+    search_tweets = [
+        {
+            "id_str": "9001",
+            "text": "Confirmed — funds via Tornado.",
+            "createdAt": "2024-09-22T12:34:56Z",
+            "author": {"id_str": "111", "screen_name": "zachxbt"},
+            "isReply": True,
+            "inReplyToId": "5000",
+            "inReplyToUsername": "PeckShieldAlert",
+        },
+        {
+            "id_str": "9002",
+            "text": "Same conclusion.",
+            "createdAt": "2024-09-22T12:35:56Z",
+            "author": {"id_str": "222", "screen_name": "samczsun"},
+            "isReply": True,
+            "inReplyToId": "5000",
+            "inReplyToUsername": "PeckShieldAlert",
+        },
+    ]
+    parent_tweet = {
+        "id_str": "5000",
+        "text": "Flashloan exploit on protocol Y, ~$3M loss.",
+        "author": {"userName": "PeckShieldAlert"},
+    }
+
+    with respx.mock(assert_all_called=True) as mock:
+        mock.get("https://api.twitterapi.io/twitter/tweet/advanced_search").mock(
+            return_value=Response(
+                200,
+                json={
+                    "tweets": search_tweets,
+                    "has_next_page": False,
+                    "next_cursor": "",
+                },
+            )
+        )
+        parent_route = mock.get(
+            "https://api.twitterapi.io/twitter/tweets"
+        ).mock(return_value=Response(200, json={"tweets": [parent_tweet]}))
+        await src.poll_once(q)
+
+    got = []
+    while not q.empty():
+        got.append(await q.get())
+    assert {e.external_id for e in got} == {"9001", "9002"}
+    for ev in got:
+        parent = ev.raw.get("_in_reply_to_tweet")
+        assert parent is not None
+        assert "Flashloan exploit" in parent["text"]
+    # Both replies share parent id 5000 → fetched once via per-poll cache.
+    assert parent_route.call_count == 1
+    await db.close()
+
+
+@pytest.mark.asyncio
+async def test_reply_parent_fetch_failure_does_not_block_emission(tmp_path: Path):
+    db = Database(tmp_path / "x.db")
+    await db.init()
+    await db.upsert_x_user(handle="zachxbt", user_id="111", tier="S")
+
+    src = _make_source(db)
+    q: asyncio.Queue = asyncio.Queue()
+
+    reply = {
+        "id_str": "9001",
+        "text": "Agreed.",
+        "createdAt": "2024-09-22T12:34:56Z",
+        "author": {"id_str": "111", "screen_name": "zachxbt"},
+        "isReply": True,
+        "inReplyToId": "5000",
+        "inReplyToUsername": "samczsun",
+    }
+    with respx.mock(assert_all_called=True) as mock:
+        mock.get("https://api.twitterapi.io/twitter/tweet/advanced_search").mock(
+            return_value=Response(
+                200,
+                json={"tweets": [reply], "has_next_page": False, "next_cursor": ""},
+            )
+        )
+        # Parent endpoint returns 5xx → transient. Reply should still emit
+        # without parent context.
+        mock.get("https://api.twitterapi.io/twitter/tweets").mock(
+            return_value=Response(503, text="boom")
+        )
+        await src.poll_once(q)
+
+    got = []
+    while not q.empty():
+        got.append(await q.get())
+    assert len(got) == 1
+    assert "_in_reply_to_tweet" not in got[0].raw
+    # The reply itself is still queued, and degrade flag stays clear (only
+    # 402 should degrade — 503 is transient).
+    assert await db.is_degraded("x_polling") is False
+    await db.close()
+
+
+@pytest.mark.asyncio
+async def test_reply_parent_fetch_402_marks_degraded(tmp_path: Path):
+    db = Database(tmp_path / "x.db")
+    await db.init()
+    await db.upsert_x_user(handle="zachxbt", user_id="111", tier="S")
+
+    src = _make_source(db)
+    q: asyncio.Queue = asyncio.Queue()
+
+    reply = {
+        "id_str": "9001",
+        "text": "Agreed.",
+        "createdAt": "2024-09-22T12:34:56Z",
+        "author": {"id_str": "111", "screen_name": "zachxbt"},
+        "isReply": True,
+        "inReplyToId": "5000",
+        "inReplyToUsername": "samczsun",
+    }
+    with respx.mock(assert_all_called=True) as mock:
+        mock.get("https://api.twitterapi.io/twitter/tweet/advanced_search").mock(
+            return_value=Response(
+                200,
+                json={"tweets": [reply], "has_next_page": False, "next_cursor": ""},
+            )
+        )
+        mock.get("https://api.twitterapi.io/twitter/tweets").mock(
+            return_value=Response(402, text="no credits")
+        )
+        await src.poll_once(q)
+
+    assert await db.is_degraded("x_polling") is True
+    await db.close()
+
+
+@pytest.mark.asyncio
 async def test_402_marks_degraded(tmp_path: Path):
     db = Database(tmp_path / "x.db")
     await db.init()

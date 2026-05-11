@@ -125,6 +125,35 @@ class XSearchPollingSource(Source):
             return default_for_new
         return max(min(ts), floor)
 
+    @staticmethod
+    def _reply_parent_id(tweet: dict[str, Any]) -> str | None:
+        for k in ("inReplyToId", "in_reply_to_status_id_str", "in_reply_to_status_id"):
+            v = tweet.get(k)
+            if v:
+                return str(v)
+        return None
+
+    async def _fetch_parent_cached(
+        self, parent_id: str, cache: dict[str, dict[str, Any] | None]
+    ) -> dict[str, Any] | None:
+        if parent_id in cache:
+            return cache[parent_id]
+        try:
+            parent = await self._client.get_tweet_by_id(parent_id)
+        except TwitterApiIoClient.CreditsExhausted:
+            cache[parent_id] = None
+            raise
+        except TwitterApiIoClient.TransientError as e:
+            log.warning("x_polling.parent_fetch_transient", error=str(e), parent_id=parent_id)
+            cache[parent_id] = None
+            return None
+        except Exception as e:
+            log.warning("x_polling.parent_fetch_error", error=str(e), parent_id=parent_id)
+            cache[parent_id] = None
+            return None
+        cache[parent_id] = parent
+        return parent
+
     async def _poll_batch(
         self,
         sink: asyncio.Queue[RawEvent],
@@ -132,6 +161,7 @@ class XSearchPollingSource(Source):
         users_by_user_id: dict[str, dict[str, Any]],
         users_by_handle_lower: dict[str, dict[str, Any]],
         now_unix: int,
+        parent_cache: dict[str, dict[str, Any] | None],
     ) -> None:
         batch_users = [users_by_handle_lower[h.lower()] for h in batch_handles]
         since_time = self._compute_since_time(batch_users, now_unix)
@@ -190,6 +220,30 @@ class XSearchPollingSource(Source):
 
                 payload = dict(t)
                 payload["_tier"] = u["tier"]
+
+                # Replies: fetch the parent tweet so the alert carries the
+                # context the reader needs. retweeted_tweet / quoted_tweet
+                # are already nested in the search response — only reply
+                # parents need a separate fetch.
+                if "_in_reply_to_tweet" not in payload:
+                    parent_id = self._reply_parent_id(t)
+                    if parent_id:
+                        try:
+                            parent = await self._fetch_parent_cached(
+                                parent_id, parent_cache
+                            )
+                        except TwitterApiIoClient.CreditsExhausted as e:
+                            await self._db.set_degraded(
+                                self.name, True, reason=f"402: {e}"
+                            )
+                            log.warning(
+                                "x_polling.degraded_credits",
+                                stage="parent_fetch",
+                                batch=batch_handles[:3],
+                            )
+                            return
+                        if parent is not None:
+                            payload["_in_reply_to_tweet"] = parent
                 ev = RawEvent(
                     source=self.name,
                     source_kind="x",
@@ -253,10 +307,20 @@ class XSearchPollingSource(Source):
         handles = [u["handle"] for u in users]
         batches = _pack_handles_into_query_batches(handles, self._query_budget)
         now_unix = int(datetime.now(UTC).timestamp())
+        # Share the parent-tweet cache across batches in a single poll cycle.
+        # If two monitored accounts reply to the same parent (e.g. both
+        # @samczsun and @zachxbt commenting on a PeckShield alert), we only
+        # pay the 15-credit fetch once.
+        parent_cache: dict[str, dict[str, Any] | None] = {}
 
         for batch in batches:
             await self._poll_batch(
-                sink, batch, users_by_user_id, users_by_handle_lower, now_unix
+                sink,
+                batch,
+                users_by_user_id,
+                users_by_handle_lower,
+                now_unix,
+                parent_cache,
             )
 
     async def run(self, sink: asyncio.Queue[RawEvent]) -> None:

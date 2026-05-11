@@ -148,6 +148,28 @@ class TwitterApiIoClient:
             "next_cursor": str(data.get("next_cursor") or ""),
         }
 
+    async def get_tweet_by_id(self, tweet_id: str) -> dict[str, Any] | None:
+        """Fetch a single tweet via /twitter/tweets?tweet_ids=<id>.
+
+        Returns the tweet dict on success, or None on 404 / empty response /
+        any non-fatal error. Raises CreditsExhausted (402) and TransientError
+        (429/5xx) so the caller can degrade or back off — same contract as
+        search_tweets so a reply-parent fetch doesn't silently mask outages.
+        """
+        if not tweet_id:
+            return None
+        data = await self._get("/twitter/tweets", {"tweet_ids": str(tweet_id)})
+        if not data:
+            return None
+        tweets = data.get("tweets")
+        if not isinstance(tweets, list):
+            inner = data.get("data") if isinstance(data.get("data"), dict) else {}
+            tweets = inner.get("tweets") if isinstance(inner, dict) else None
+        if isinstance(tweets, list) and tweets:
+            t = tweets[0]
+            return t if isinstance(t, dict) else None
+        return None
+
     async def get_last_tweets(
         self, *, user_id: str, since_id: str | None = None, limit: int = 20
     ) -> list[dict[str, Any]]:
