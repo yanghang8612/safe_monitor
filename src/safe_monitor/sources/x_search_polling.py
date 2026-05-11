@@ -188,7 +188,7 @@ class XSearchPollingSource(Source):
                 log.warning("x_polling.transient", error=str(e), page=page)
                 return
             except Exception as e:
-                log.warning("x_polling.error", error=str(e), page=page)
+                log.warning("x_polling.error", error=repr(e), page=page)
                 return
 
             tweets = resp["tweets"]

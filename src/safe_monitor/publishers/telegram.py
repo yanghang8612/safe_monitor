@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 import structlog
 from telegram import Bot
 from telegram.error import TelegramError
@@ -48,8 +50,16 @@ class TelegramPublisher(Publisher):
         joined = f"{event.title}\n{event.body or ''}"
         if is_mostly_chinese(joined):
             return event
-        title = await self._translator.translate(event.title)
-        body = await self._translator.translate(event.body) if event.body else event.body
+        # Run title and body translations concurrently — wall-clock matters
+        # because translation sits on the alert delivery hot path.
+        if event.body:
+            title, body = await asyncio.gather(
+                self._translator.translate(event.title),
+                self._translator.translate(event.body),
+            )
+        else:
+            title = await self._translator.translate(event.title)
+            body = event.body
         return event.model_copy(update={"title": title, "body": body})
 
     async def publish(self, event: Event) -> bool:

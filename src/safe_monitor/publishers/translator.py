@@ -51,7 +51,7 @@ class OpenAITranslator:
         api_key: str,
         model: str = "gpt-4o-mini",
         base_url: str | None = None,
-        timeout: float = 8.0,
+        timeout: float = 30.0,
     ):
         self._client = AsyncOpenAI(api_key=api_key, base_url=base_url, timeout=timeout)
         self._model = model
