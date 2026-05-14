@@ -61,10 +61,10 @@ async def _build_sources(
                     db=db,
                 )
             )
-        elif api.name == "rekt_news":
+        elif api.name in ("rekt_news", "wublock_news"):
             sources.append(
                 RssFeedPoller(
-                    name="rekt_news",
+                    name=api.name,
                     endpoint=api.endpoint,
                     poll_interval_seconds=api.poll_interval_seconds,
                     db=db,
