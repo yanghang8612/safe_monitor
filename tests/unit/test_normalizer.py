@@ -179,3 +179,55 @@ def test_normalizer_routes_x_source_kind_to_x_parser():
     assert ev.severity == Severity.high
     assert ev.url == "https://x.com/samczsun/status/1789012345678901234"
     assert "a" in [c.value if hasattr(c, "value") else c for c in ev.category]
+
+
+def test_normalizer_routes_wublock_security_item_to_high():
+    from datetime import UTC, datetime
+
+    from safe_monitor.core.models import RawEvent, Severity
+    from safe_monitor.core.normalizer import Normalizer
+
+    raw = RawEvent(
+        source="wublock_news",
+        source_kind="api",
+        external_id="https://www.wublock123.com/news/defi-exploit-61067",
+        received_at=datetime.now(UTC),
+        raw={
+            "title": "某 DeFi 协议遭攻击被盗约 1200 万美元",
+            "description": "<p>吴说获悉，某 DeFi 协议遭攻击，攻击者通过协议漏洞被盗约 1200 万美元。</p>",
+            "link": "https://www.wublock123.com/news/defi-exploit-61067",
+            "guid": "https://www.wublock123.com/news/defi-exploit-61067",
+        },
+        text="吴说获悉，某 DeFi 协议遭攻击，攻击者通过协议漏洞被盗约 1200 万美元。",
+        url="https://www.wublock123.com/news/defi-exploit-61067",
+    )
+    ev = Normalizer().normalize(raw)
+    assert ev is not None
+    assert ev.title == "某 DeFi 协议遭攻击被盗约 1200 万美元"
+    assert ev.severity == Severity.high
+    assert ev.url == "https://www.wublock123.com/news/defi-exploit-61067"
+
+
+def test_normalizer_routes_wublock_funding_item_to_low():
+    from datetime import UTC, datetime
+
+    from safe_monitor.core.models import RawEvent, Severity
+    from safe_monitor.core.normalizer import Normalizer
+
+    raw = RawEvent(
+        source="wublock_news",
+        source_kind="api",
+        external_id="https://www.wublock123.com/news/stitch-61068",
+        received_at=datetime.now(UTC),
+        raw={
+            "title": "金融基础设施公司 Stitch 宣布完成 2500 万美元 A 轮融资",
+            "description": "<p>吴说获悉，金融基础设施公司 Stitch 宣布完成 2500 万美元 A 轮融资，由 a16z 领投。</p>",
+            "link": "https://www.wublock123.com/news/stitch-61068",
+            "guid": "https://www.wublock123.com/news/stitch-61068",
+        },
+        text="吴说获悉，金融基础设施公司 Stitch 宣布完成 2500 万美元 A 轮融资，由 a16z 领投。",
+        url="https://www.wublock123.com/news/stitch-61068",
+    )
+    ev = Normalizer().normalize(raw)
+    assert ev is not None
+    assert ev.severity == Severity.low

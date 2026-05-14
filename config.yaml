@@ -22,6 +22,12 @@ sources:
     - name: rekt_news
       endpoint: "https://rekt.news/rss/feed.xml"
       poll_interval_seconds: 3600
+    # wublock123 (吴说): all-category Chinese crypto newsflash in Atom format.
+    # Non-security items (funding, market) score 'low' and are dropped by
+    # min_severity=medium — only security-relevant entries reach the channel.
+    - name: wublock_news
+      endpoint: "https://wublock123.com/feed"
+      poll_interval_seconds: 300
 
   # All TG-channel ingestion (peckshield_tg, scam_sniffer_tg, etc.) was retired
   # in favour of X — same accounts post the same content faster on Twitter, and

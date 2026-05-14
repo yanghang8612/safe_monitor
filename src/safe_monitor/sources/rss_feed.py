@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import xml.etree.ElementTree as ET
+from collections.abc import Iterator
 from datetime import UTC, datetime
 
 import httpx
@@ -15,9 +16,74 @@ from safe_monitor.storage.db import Database
 log = structlog.get_logger(__name__)
 
 
+def _local_tag(tag: str) -> str:
+    """Strip an XML namespace prefix: '{ns}item' -> 'item'."""
+    return tag.split("}", 1)[-1]
+
+
+def _is_atom(root: ET.Element) -> bool:
+    """True for an Atom <feed> root, False for an RSS 2.0 <rss> root."""
+    return _local_tag(root.tag) == "feed"
+
+
+def _iter_entries(
+    root: ET.Element,
+) -> Iterator[tuple[str, str, str, str | None, datetime | None]]:
+    """Yield (guid, title, description, link, pub) for each feed entry.
+
+    Handles RSS 2.0 (<item>/<pubDate>) and Atom (<entry>/<published>)
+    uniformly. Only the direct children of each entry are read, so
+    feed-level <id>/<link>/<updated> elements never leak into an entry.
+    """
+    atom = _is_atom(root)
+    entry_tag = "entry" if atom else "item"
+    for node in root.iter():
+        if not node.tag.endswith(entry_tag):
+            continue
+        guid = ""
+        title = ""
+        description = ""
+        link: str | None = None
+        pub: datetime | None = None
+        for child in node:
+            tag = _local_tag(child.tag)
+            text = (child.text or "").strip() if child.text else ""
+            if atom:
+                if tag == "id":
+                    guid = text
+                elif tag == "title":
+                    title = text
+                elif tag == "content":
+                    if text:
+                        description = text
+                elif tag == "summary":
+                    if text and not description:
+                        description = text
+                elif tag == "link":
+                    href = child.get("href")
+                    if href and link is None:
+                        link = href
+                elif tag == "published":
+                    pub = _parse_checkpoint(text)
+                elif tag == "updated":
+                    pub = pub or _parse_checkpoint(text)
+            else:
+                if tag == "guid":
+                    guid = text
+                elif tag == "title":
+                    title = text
+                elif tag == "description":
+                    description = text
+                elif tag == "link":
+                    link = text or None
+                elif tag == "pubDate":
+                    pub = _parse_pubdate(text)
+        yield guid, title, description, link, pub
+
+
 class RssFeedPoller(Source):
-    """Generic RSS 2.0 / Atom poller. Used for Rekt.news and any other
-    standalone feed (i.e. not RSSHub-wrapped Telegram channels).
+    """Generic RSS 2.0 / Atom poller. Used for Rekt.news, wublock123, and any
+    other standalone feed (i.e. not RSSHub-wrapped Telegram channels).
 
     Cursor: ISO-8601 string of the most recently seen item's pubDate.
     Emits RawEvent with source_kind='api'.
@@ -54,28 +120,7 @@ class RssFeedPoller(Source):
 
         new_max = last_pubdate
         emitted = 0
-        for item in root.iter():
-            if not item.tag.endswith("item"):
-                continue
-            guid = ""
-            title = ""
-            description = ""
-            link: str | None = None
-            pub: datetime | None = None
-            for child in item:
-                tag = child.tag.split("}", 1)[-1]
-                text = (child.text or "").strip() if child.text else ""
-                if tag == "guid":
-                    guid = text
-                elif tag == "title":
-                    title = text
-                elif tag == "description":
-                    description = text
-                elif tag == "link":
-                    link = text or None
-                elif tag == "pubDate":
-                    pub = _parse_pubdate(text)
-
+        for guid, title, description, link, pub in _iter_entries(root):
             if pub is not None and pub <= last_pubdate:
                 continue
 

@@ -9,6 +9,7 @@ from safe_monitor.core.parsers.forta import parse_forta
 from safe_monitor.core.parsers.generic_tg import parse_generic_tg
 from safe_monitor.core.parsers.ofac import parse_ofac
 from safe_monitor.core.parsers.rekt import parse_rekt
+from safe_monitor.core.parsers.wublock import parse_wublock
 from safe_monitor.core.severity import score as score_severity
 
 
@@ -23,6 +24,8 @@ class Normalizer:
             parsed = parse_forta(raw.raw)
         elif raw.source == "rekt_news":
             parsed = parse_rekt(raw.raw)
+        elif raw.source == "wublock_news":
+            parsed = parse_wublock(raw.raw)
         elif raw.source_kind == "tg":
             text = raw.text or json.dumps(raw.raw)
             if raw.source == "peckshield_tg":
