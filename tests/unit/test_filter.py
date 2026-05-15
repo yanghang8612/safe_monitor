@@ -35,18 +35,22 @@ async def test_drops_deny_keyword():
 
 
 @pytest.mark.asyncio
-async def test_classifier_runs_only_for_x_sources():
+async def test_classifier_runs_only_for_gated_sources():
     classifier = AsyncMock()
     classifier.is_security = AsyncMock(return_value=True)
     f = Filter(FilterCfg(min_severity="low", deny_keywords=[]), classifier=classifier)
 
-    # Non-x source bypasses classifier
+    # Pre-curated sources (rekt / ofac / forta) bypass classifier
     assert await f.allow(_event("anything", Severity.high, source="rekt_news")) is True
     classifier.is_security.assert_not_called()
 
-    # x_websocket / x_polling source triggers it
+    # x_websocket / x_polling trigger it
     assert await f.allow(_event("anything", Severity.high, source="x_websocket")) is True
-    classifier.is_security.assert_awaited_once()
+    assert classifier.is_security.await_count == 1
+
+    # wublock_news mixes incident reports with opinion/analysis — also gated
+    assert await f.allow(_event("anything", Severity.high, source="wublock_news")) is True
+    assert classifier.is_security.await_count == 2
 
 
 @pytest.mark.asyncio
