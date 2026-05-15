@@ -4,6 +4,7 @@ import re
 from typing import Any
 
 from safe_monitor.core.models import Severity
+from safe_monitor.core.severity import has_security_keywords
 
 _HIGH_TIERS = frozenset({"S", "A"})
 
@@ -107,8 +108,15 @@ def parse_x_tweet(tweet: dict[str, Any], *, tier: str) -> dict[str, Any]:
     """Parse a TwitterAPI.io tweet object (WS or REST shape).
 
     `tier` controls the severity hint:
-      S/A  -> Severity.high  (skip keyword scorer in normalizer)
-      else -> None           (normalizer falls back to keyword scorer)
+      S/A + security keyword in body -> Severity.high (skip scorer)
+      S/A + no security keyword      -> Severity.low  (drops below min_severity)
+      else                           -> None          (normalizer's scorer runs)
+
+    Pre-2026-05-15 Tier S/A was an unconditional severity.high boost, which
+    fired on jokes / empty replies / off-topic technical chatter from
+    researchers. Now the boost only kicks in when the body actually matches
+    security vocabulary; otherwise it's pushed below min_severity so the
+    filter drops it before the LLM classifier even sees it.
     """
     tid = tweet.get("id_str") or tweet.get("id")
     if not tid:
@@ -166,7 +174,10 @@ def parse_x_tweet(tweet: dict[str, Any], *, tier: str) -> dict[str, Any]:
     # Canonical permalink points at the visible tweet (the RT/reply/quote
     # itself), not the original — fingerprint stability depends on it.
     url = _canonical_url(screen, tid)
-    severity: Severity | None = Severity.high if tier in _HIGH_TIERS else None
+    if tier in _HIGH_TIERS:
+        severity = Severity.high if has_security_keywords(body) else Severity.low
+    else:
+        severity = None
 
     return {
         "title": title,

@@ -1,5 +1,5 @@
 from safe_monitor.core.models import Severity
-from safe_monitor.core.severity import score
+from safe_monitor.core.severity import has_security_keywords, score
 
 
 def test_english_hack_keyword_no_loss():
@@ -68,3 +68,19 @@ def test_empty_text():
 
 def test_none_text():
     assert score(None, None) == Severity.low
+
+
+def test_has_security_keywords_hits_en_zh_and_categories():
+    assert has_security_keywords("Protocol drained for 80M") is True
+    assert has_security_keywords("flashloan attack on Y") is True
+    assert has_security_keywords("某协议被盗约500万") is True
+    assert has_security_keywords("OFAC just sanctioned addr") is True
+    assert has_security_keywords("钓鱼网站仿冒前端") is True
+
+
+def test_has_security_keywords_misses_offtopic():
+    assert has_security_keywords("Just shipped a thing.") is False
+    assert has_security_keywords("POV: 你终于拿到了赏金") is False
+    assert has_security_keywords("@friend lol same") is False
+    assert has_security_keywords("") is False
+    assert has_security_keywords(None) is False

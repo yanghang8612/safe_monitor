@@ -227,3 +227,54 @@ def test_parse_missing_id_raises():
     import pytest as _pt
     with _pt.raises(ValueError):
         parse_x_tweet({"text": "hello"}, tier="S")
+
+
+def test_tier_s_without_security_keywords_drops_to_low():
+    # pcaversaccio-style off-topic technical chatter: tier S but no incident
+    # vocabulary -> severity.low so filter's min_severity=medium drops it
+    # before the LLM gate runs (saves a classifier call on obvious chaff).
+    raw = {
+        "id": "1",
+        "text": "所以我认为这在技术上并不准确；隐私池未来某天会推出？",
+        "author": {"id": "1", "userName": "pcaversaccio"},
+    }
+    p = parse_x_tweet(raw, tier="S")
+    assert p["severity"] == Severity.low
+
+
+def test_tier_s_joke_with_security_word_passes_to_classifier():
+    # pashov 段子 contains "漏洞" — a real security keyword. The parser
+    # can't distinguish a joke from a real disclosure at the lexical layer,
+    # so it keeps severity.high; the LLM classifier gate downstream (with
+    # its "jokes / POV posts -> NO" rule) is what filters this case.
+    raw = {
+        "id": "10",
+        "text": "POV：你终于找到了那个Critical漏洞，拿到了赏金💰",
+        "author": {"id": "1", "userName": "pashov"},
+    }
+    p = parse_x_tweet(raw, tier="S")
+    assert p["severity"] == Severity.high
+
+
+def test_tier_s_with_security_keywords_keeps_high():
+    # zachxbt 引用真实事件: keywords hit, tier S preserves the high boost.
+    raw = {
+        "id": "2",
+        "text": "Thorchain似乎遭遇了跨链攻击，损失超过740万美元",
+        "author": {"id": "9", "userName": "zachxbt"},
+    }
+    p = parse_x_tweet(raw, tier="S")
+    assert p["severity"] == Severity.high
+
+
+def test_tier_s_empty_reply_drops_to_low():
+    # frangio_ replying with only a URL — no body content to match keywords.
+    raw = {
+        "id": "3",
+        "text": "@real_philogy https://t.co/abc",
+        "author": {"id": "1", "userName": "frangio_"},
+        "isReply": True,
+        "inReplyToUsername": "real_philogy",
+    }
+    p = parse_x_tweet(raw, tier="S")
+    assert p["severity"] == Severity.low
