@@ -26,17 +26,26 @@ from safe_monitor.storage.db import Database
 log = structlog.get_logger(__name__)
 
 
+# search_tweets wraps each batch as "(<joined>) since_time:<unix>". The
+# joined `from:` tokens must leave room for that wrapper, or the full query
+# overruns X advanced_search's 512-char limit and the API silently returns
+# nothing. 11 digits covers the unix timestamp well past any realistic date.
+_QUERY_WRAPPER_OVERHEAD = len("() since_time:") + 11
+
+
 def _pack_handles_into_query_batches(
     handles: list[str], budget: int = 500
 ) -> list[list[str]]:
-    """Greedy-pack `from:<h>` tokens under `budget` chars per batch."""
+    """Greedy-pack `from:<h>` tokens so each batch's *full* query — including
+    the `(...) since_time:<unix>` wrapper — stays within `budget` chars."""
+    effective = budget - _QUERY_WRAPPER_OVERHEAD
     out: list[list[str]] = []
     cur: list[str] = []
     cur_len = 0
     for h in handles:
         token = f"from:{h}"
         added_len = len(token) if not cur else len(token) + 4  # ' OR '
-        if cur and cur_len + added_len > budget:
+        if cur and cur_len + added_len > effective:
             out.append(cur)
             cur, cur_len = [h], len(token)
         else:
