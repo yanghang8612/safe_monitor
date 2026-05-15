@@ -49,6 +49,8 @@ sources:
     # idle batch costs the 15-credit floor regardless of size — ~25× cheaper
     # than per-handle last_tweets. Flip to "last_tweets" to fall back.
     poll_endpoint: advanced_search
+    # Max full-query length per batch, including the "(...) since_time:<unix>"
+    # wrapper. Must stay under X advanced_search's 512-char query limit.
     poll_query_budget: 500
     poll_max_pages_per_batch: 5
     # Only used when poll_endpoint=last_tweets.
