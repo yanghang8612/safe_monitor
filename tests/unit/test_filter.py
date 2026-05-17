@@ -70,3 +70,18 @@ async def test_classifier_skipped_when_severity_already_below_min():
 
     assert await f.allow(_event("anything", Severity.medium, source="x_websocket")) is False
     classifier.is_security.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_all_zh_newsflash_sources_are_gated():
+    # jinse / techflow / foresight / panews are general-purpose news feeds —
+    # they must hit the LLM gate just like wublock_news, otherwise keyword
+    # hits ("OFAC"、"漏洞"、"攻击") in policy/commentary articles flood the
+    # channel.
+    classifier = AsyncMock()
+    classifier.is_security = AsyncMock(return_value=True)
+    f = Filter(FilterCfg(min_severity="low", deny_keywords=[]), classifier=classifier)
+
+    for src in ("jinse_news", "techflow_news", "foresight_news", "panews_news"):
+        await f.allow(_event("某协议遭遇攻击", Severity.high, source=src))
+    assert classifier.is_security.await_count == 4

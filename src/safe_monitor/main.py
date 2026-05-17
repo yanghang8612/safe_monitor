@@ -14,7 +14,7 @@ from safe_monitor.sources.base import Source
 from safe_monitor.sources.defillama import DefiLlamaHacksPoller
 from safe_monitor.sources.forta import FortaPoller
 from safe_monitor.sources.ofac import OfacSdnPoller
-from safe_monitor.sources.rss_feed import RssFeedPoller
+from safe_monitor.sources.rss_feed import RSS_FEED_SOURCES, RssFeedPoller
 from safe_monitor.sources.rsshub_tg import RSSHubTGPoller
 from safe_monitor.sources.telegram import TelegramIngestor
 from safe_monitor.storage.db import Database
@@ -61,7 +61,7 @@ async def _build_sources(
                     db=db,
                 )
             )
-        elif api.name in ("rekt_news", "wublock_news"):
+        elif api.name in RSS_FEED_SOURCES:
             sources.append(
                 RssFeedPoller(
                     name=api.name,

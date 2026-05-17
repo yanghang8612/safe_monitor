@@ -231,3 +231,34 @@ def test_normalizer_routes_wublock_funding_item_to_low():
     ev = Normalizer().normalize(raw)
     assert ev is not None
     assert ev.severity == Severity.low
+
+
+def test_normalizer_routes_other_zh_newsflash_through_wublock_parser():
+    # jinse / techflow / foresight / panews share wublock's parse path —
+    # title + description + link from RSSHub-fed XML. Sanity-check that
+    # the dispatch table includes them, otherwise items show up as
+    # "unknown source" and get silently dropped.
+    from datetime import UTC, datetime
+
+    from safe_monitor.core.models import RawEvent, Severity
+    from safe_monitor.core.normalizer import Normalizer
+
+    for src in ("jinse_news", "techflow_news", "foresight_news", "panews_news"):
+        raw = RawEvent(
+            source=src,
+            source_kind="api",
+            external_id=f"id-{src}",
+            received_at=datetime.now(UTC),
+            raw={
+                "title": "某协议遭攻击被盗 500 万美元",
+                "description": "<p>某协议遭遇跨链桥攻击，损失约 500 万美元。</p>",
+                "link": f"https://example.com/{src}",
+                "guid": f"id-{src}",
+            },
+            text="某协议遭遇跨链桥攻击，损失约 500 万美元。",
+            url=f"https://example.com/{src}",
+        )
+        ev = Normalizer().normalize(raw)
+        assert ev is not None, f"{src} dropped by normalizer"
+        assert ev.severity == Severity.high, f"{src} severity wrong"
+        assert ev.source == src

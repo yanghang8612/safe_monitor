@@ -12,10 +12,17 @@ _SEVERITY_MAP = {
 }
 
 # Sources whose items mix real incidents with opinion/analysis that
-# keyword-match security but aren't actionable events (e.g. wublock_news
-# carries CertiK-CEO interviews alongside actual hack reports). Routed
-# through the LLM gate just like X.
-_LLM_GATED_SOURCES = frozenset({"wublock_news"})
+# keyword-match security but aren't actionable events (CertiK CEO
+# interviews, policy commentary, ETF/funding news, etc.). Routed through
+# the LLM gate just like X. Keep in sync with _ZH_NEWSFLASH_SOURCES in
+# core/normalizer.py — they parse the same way and need the same gate.
+_LLM_GATED_SOURCES = frozenset({
+    "wublock_news",
+    "jinse_news",
+    "techflow_news",
+    "foresight_news",
+    "panews_news",
+})
 
 
 class Filter:

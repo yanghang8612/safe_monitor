@@ -28,6 +28,22 @@ sources:
     - name: wublock_news
       endpoint: "https://wublock123.com/feed"
       poll_interval_seconds: 300
+    # Below 4 are general Chinese crypto newsflash feeds via self-hosted
+    # RSSHub (rsshub container in docker-compose). Every entry runs through
+    # the LLM classifier gate because keyword-only filtering can't tell
+    # market-policy commentary from real security incidents.
+    - name: jinse_news
+      endpoint: "http://rsshub:1200/jinse/lives"
+      poll_interval_seconds: 300
+    - name: techflow_news
+      endpoint: "http://rsshub:1200/techflowpost/express"
+      poll_interval_seconds: 300
+    - name: foresight_news
+      endpoint: "http://rsshub:1200/foresightnews/news"
+      poll_interval_seconds: 300
+    - name: panews_news
+      endpoint: "http://rsshub:1200/panewslab/news"
+      poll_interval_seconds: 300
 
   # All TG-channel ingestion (peckshield_tg, scam_sniffer_tg, etc.) was retired
   # in favour of X — same accounts post the same content faster on Twitter, and
