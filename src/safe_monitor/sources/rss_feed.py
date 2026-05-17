@@ -15,6 +15,19 @@ from safe_monitor.storage.db import Database
 
 log = structlog.get_logger(__name__)
 
+# Source names routed through this generic poller. main.py reads this to
+# decide which `api.name` entries should be wired up to RssFeedPoller.
+# Normalizer and filter keep their own narrower sets (incidents-only
+# vs. newsflash mix) — see core/normalizer.py and core/filter.py.
+RSS_FEED_SOURCES = frozenset({
+    "rekt_news",
+    "wublock_news",
+    "jinse_news",
+    "techflow_news",
+    "foresight_news",
+    "panews_news",
+})
+
 
 def _local_tag(tag: str) -> str:
     """Strip an XML namespace prefix: '{ns}item' -> 'item'."""

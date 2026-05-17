@@ -12,6 +12,20 @@ from safe_monitor.core.parsers.rekt import parse_rekt
 from safe_monitor.core.parsers.wublock import parse_wublock
 from safe_monitor.core.severity import score as score_severity
 
+# General-purpose Chinese crypto newsflash feeds (吴说 + RSSHub-fed jinse /
+# techflow / foresight / panews) all share the same shape — title +
+# description + link — so they dispatch to the same薄 parser. Keep this
+# list in sync with ZH_NEWSFLASH_SOURCES in sources/rss_feed.py and
+# _LLM_GATED_SOURCES in core/filter.py: the three layers must agree on
+# which sources need keyword extraction + LLM gating.
+_ZH_NEWSFLASH_SOURCES = frozenset({
+    "wublock_news",
+    "jinse_news",
+    "techflow_news",
+    "foresight_news",
+    "panews_news",
+})
+
 
 class Normalizer:
     def normalize(self, raw: RawEvent) -> Event | None:
@@ -24,7 +38,7 @@ class Normalizer:
             parsed = parse_forta(raw.raw)
         elif raw.source == "rekt_news":
             parsed = parse_rekt(raw.raw)
-        elif raw.source == "wublock_news":
+        elif raw.source in _ZH_NEWSFLASH_SOURCES:
             parsed = parse_wublock(raw.raw)
         elif raw.source_kind == "tg":
             text = raw.text or json.dumps(raw.raw)
