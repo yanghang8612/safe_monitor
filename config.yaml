@@ -38,12 +38,18 @@ sources:
     - name: techflow_news
       endpoint: "http://rsshub:1200/techflowpost/express"
       poll_interval_seconds: 300
-    - name: foresight_news
-      endpoint: "http://rsshub:1200/foresightnews/news"
-      poll_interval_seconds: 300
+    # PANews ships its own RSS — no RSSHub middleman needed.
     - name: panews_news
-      endpoint: "http://rsshub:1200/panewslab/news"
+      endpoint: "https://www.panewslab.com/rss.xml?lang=zh"
       poll_interval_seconds: 300
+    # Foresight News: RSSHub route broken (upstream api.foresightnews.pro
+    # returns 403 since they pulled anonymous API access), no public RSS,
+    # main site behind EdgeOne WAF. The @ForesightNews handle is already
+    # in the X tier-D list — once the TwitterAPI.io credit is topped up
+    # that line covers Foresight content. Re-enable here if a path opens.
+    # - name: foresight_news
+    #   endpoint: "http://rsshub:1200/foresightnews/news"
+    #   poll_interval_seconds: 300
 
   # All TG-channel ingestion (peckshield_tg, scam_sniffer_tg, etc.) was retired
   # in favour of X — same accounts post the same content faster on Twitter, and
